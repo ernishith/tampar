@@ -49,8 +49,8 @@ class TamperingClassificator:
                 shuffle=True,
                 stratify=self.y,
             )
-            y_train = y_train.astype(np.int)
-            y_test = y_test.astype(np.int)
+            y_train = y_train.astype(int)
+            y_test = y_test.astype(int)
         else:
             (X_train, X_test, y_train, y_test, ids_train, ids_test,) = (
                 self.X,

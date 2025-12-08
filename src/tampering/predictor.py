@@ -87,8 +87,8 @@ class TamperingClassificator:
             train_metrics.append(evaluate(model, X_train, y_train))
             val_metrics.append(evaluate(model, X_val, y_val))
             models.append(model)
-        train_metrics_summary = pd.DataFrame(train_metrics).mean()
-        val_metrics_summary = pd.DataFrame(val_metrics).mean()
+        train_metrics_summary = pd.DataFrame(train_metrics).mean(numeric_only=True)
+        val_metrics_summary = pd.DataFrame(val_metrics).mean(numeric_only=True)
 
         return train_metrics_summary, val_metrics_summary, models
 

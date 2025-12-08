@@ -43,7 +43,7 @@ def create_pivot(df: pd.DataFrame) -> pd.DataFrame:
         df_pivot,
         on="id",
     )
-    df_final["tampering"].fillna("", inplace=True)
+    df_final["tampering"] = df_final["tampering"].fillna("")
     df_final.fillna(-1, inplace=True)
     return df_final
 
@@ -135,8 +135,8 @@ def train_predictor(
                 }
             )
 
-        df_results_ = pd.DataFrame(results_performance)
-        return df_results_
+    df_results_ = pd.DataFrame(results_performance)
+    return df_results_
 
 
 def main():

@@ -250,7 +250,7 @@ def cupy_kernel(strFunction, objectVariables):
     strKernel = globals()[strFunction]
 
     while True:
-        objectMatch = re.search("(SIZE_)([0-4])(\()([^\)]*)(\))", strKernel)
+        objectMatch = re.search(r"(SIZE_)([0-4])(\()([^\)]*)(\))", strKernel)
 
         if objectMatch is None:
             break
@@ -265,7 +265,7 @@ def cupy_kernel(strFunction, objectVariables):
     # end
 
     while True:
-        objectMatch = re.search("(VALUE_)([0-4])(\()([^\)]+)(\))", strKernel)
+        objectMatch = re.search(r"(VALUE_)([0-4])(\()([^\)]+)(\))", strKernel)
 
         if objectMatch is None:
             break
@@ -298,7 +298,15 @@ def cupy_kernel(strFunction, objectVariables):
 
 @cupy.memoize(for_each_device=True)
 def cupy_launch(strFunction, strKernel):
-    return cupy.cuda.compile_with_cache(strKernel).get_function(strFunction)
+    # Updated for CuPy 11.0+ compatibility
+    # In CuPy 11.0+, compile_with_cache was replaced with RawModule
+    if hasattr(cupy, 'RawModule'):
+        # CuPy 11.0+ API
+        module = cupy.RawModule(code=strKernel)
+        return module.get_function(strFunction)
+    else:
+        # CuPy < 11.0 API (fallback)
+        return cupy.cuda.compile_with_cache(strKernel).get_function(strFunction)
 
 
 # end

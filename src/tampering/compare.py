@@ -230,14 +230,20 @@ def compare_kornia(im1: np.ndarray, im2: np.ndarray, filter_name="dexined"):
         im2 = (1 - im2) * 255
     else:
         raise NotImplementedError
-    # Adjust
+    # Adjust - FIXED
     im1 = im1.detach().cpu().squeeze(0)
     im2 = im2.detach().cpu().squeeze(0)
+    # Handle 2D tensors from DexiNed
+    if im1.ndim == 2:
+        im1 = im1.unsqueeze(0)
+    if im2.ndim == 2:
+        im2 = im2.unsqueeze(0)
     im1 = einops.rearrange(im1, "c h w -> h w c").numpy()
     im2 = einops.rearrange(im2, "c h w -> h w c").numpy()
-    if im1.shape[2] == 1 and im2.shape[2] == 1:
-        im1 = cv2.cvtColor(im1, cv2.COLOR_GRAY2BGR)
-        im2 = cv2.cvtColor(im2, cv2.COLOR_GRAY2BGR)
+    if im1.shape[2] == 1:
+        im1 = cv2.cvtColor(im1.astype(np.float32), cv2.COLOR_GRAY2BGR)
+    if im2.shape[2] == 1:
+        im2 = cv2.cvtColor(im2.astype(np.float32), cv2.COLOR_GRAY2BGR)
     return im1, im2
 
 

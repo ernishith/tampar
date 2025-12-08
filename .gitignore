@@ -2,4 +2,8 @@
 output/
 imgs/
 out_imgs/
-src/simsac/weight
+src/simsac/weight/
+.ipynb_checkpoints/
+src/maskrcnn/weight/
+.DS_Store
+tampar/

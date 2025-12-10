@@ -142,6 +142,7 @@ def train_predictor(
 def main():
     df = load_results(ROOT / "data" / "misc" / "simscores_validation.csv")
     df_final = create_pivot(df)
+    df_results = train_predictor(df_final, validate=False, gt_keypoints=False)
     df_results = train_predictor(df_final, validate=True, gt_keypoints=False)
     df_results.to_csv("tampering_results.csv")
 

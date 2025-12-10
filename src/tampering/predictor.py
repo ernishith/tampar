@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 
 from src.tampering.evaluate import evaluate
 
@@ -30,10 +31,18 @@ class TamperingClassificator:
             "splitter": "best",
             "max_depth": 1,
         }
+        rf_params = {
+            "n_estimators": 50,
+            "criterion": "gini",
+            "max_depth": 10,
+            "random_state": 42,
+        } 
         if self.model_parameters is not None:
             params.update(self.model_parameters)
         if self.model_name == "simple_threshold":
             return DecisionTreeClassifier(**params)
+        elif self.model_name == "rf":
+            return RandomForestClassifier(**rf_params)
         else:
             raise ValueError(f"Model name ({self.model_name}) unknown!")
 

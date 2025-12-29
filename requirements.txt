@@ -1,4 +1,4 @@
-black[jupyter]==22.3.0
+black==21.4b2
 cupy_cuda113==10.6.0
 einops==0.6.1
 future==0.18.3

@@ -7,3 +7,5 @@ src/simsac/weight/
 src/maskrcnn/weight/
 .DS_Store
 tampar/
+.venv*
+.vscode/settings.json

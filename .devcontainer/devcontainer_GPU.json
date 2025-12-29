@@ -1,13 +1,16 @@
 {
     "build": {
-        "dockerfile": "../Dockerfile",
+        "dockerfile": "../Dockerfile_GPU",
         "args": {
+            "rumtime": "nvidia"
         }
     },
     "runArgs": [
-        "--shm-size=32G"
+        "--runtime=nvidia",
+        "--shm-size=32G" // see https://github.com/pytorch/pytorch/issues/2244
     ],
     "containerEnv": {
+        "NVIDIA_VISIBLE_DEVICES": "0"
     },
     "customizations": {
         "vscode": {
@@ -19,10 +22,12 @@
                 "ms-python.isort",
                 "garytyler.darcula-pycharm",
                 "ms-azuretools.vscode-docker",
-                "mhutchie.git-graph"
+                "mhutchie.git-graph",
+                "ms-toolsai.jupyter"
             ]
         }
     },
     "mounts": [
-    ]
+        // "source=LOCAL/PATH/TO/DATA,target=/DOCKER/PATH/TO/DATA,type=bind,consistency=cached",
+    ],
 }

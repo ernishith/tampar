@@ -35,6 +35,18 @@ def setup(args):
 
 
 def parse_args(args):
+    if not args:
+        args = [
+            "--config-file",
+            "src/maskrcnn/configs/test.yaml",
+            "--gpus",
+            "0",
+            "--num-gpus",
+            "1",
+            "--num-machines",
+            "1",
+        ]
+        print("🔧 HARDCODED ARGS FOR DEBUG:", args)
     parser = default_argument_parser()
     parser.add_argument("--gpus", default="0", help="Set GPUs that should be used")
     args = parser.parse_args(args)

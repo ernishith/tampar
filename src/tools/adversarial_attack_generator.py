@@ -1,7 +1,7 @@
 """
 adversarial_attack_generator.py
 
-Adds adversarial noise to parcel images without requiring keypoint detection.
+Adds adversarial noise to parcel images.
 - FGSM-style noise to every 2nd image
 - PGD-style noise to every 4th image
 """

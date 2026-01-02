@@ -7,11 +7,11 @@ ROOT = Path(__file__).parent.parent.parent
 sys.path.append(ROOT.as_posix())
 
 import pandas as pd
+from joblib import dump, load
 
 from src.tampering.compare import METRICS, CompareType
 from src.tampering.evaluate import evaluate
 from src.tampering.predictor import TamperingClassificator
-from joblib import dump, load
 
 SPLIT_STRING = "___"
 
@@ -114,12 +114,12 @@ def train_predictor(
         else:
             predictor.test_split_size = 0
             model, train_metrics, test_metrics = predictor.train()
-            dump(model, "tamparmodel.joblib") # Save the trained model
+            dump(model, "tamparmodel.joblib")  # Save the trained model
 
-            #X_test = data_test[scores].to_numpy().astype(float)
-            #y_test = data_test["tampered"].to_numpy().astype(int)
+            # X_test = data_test[scores].to_numpy().astype(float)
+            # y_test = data_test["tampered"].to_numpy().astype(int)
             ids_test = data_test["id"].to_numpy()
-            #test_metrics = evaluate(model, X_test, y_test)
+            # test_metrics = evaluate(model, X_test, y_test)
             results_performance.append(
                 {
                     "predictor": predictor_type,
@@ -203,8 +203,6 @@ def main(argv: Optional[List[str]] = None):
             df_final, validate=False, gt_keypoints=False, predictor_type="rf"
         )
         df_results_test.to_csv("tampering_results_test.csv")
-
-
 
 
 if __name__ == "__main__":

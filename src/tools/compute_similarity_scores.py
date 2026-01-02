@@ -1,9 +1,7 @@
-import argparse
 import concurrent.futures
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import List, Optional
 
 ROOT = Path(__file__).parent.parent.parent
 sys.path.append(ROOT.as_posix())
@@ -111,7 +109,6 @@ def compute_parcel_similitary_scores(parcel_id: int, image_path: Path, parallel=
     return parcel_results
 
 
-"""
 def main(parallel=False) -> pd.DataFrame:
     results = []
     for folder_name in ["validation"]:  # , "test"]:
@@ -130,55 +127,7 @@ def main(parallel=False) -> pd.DataFrame:
     df = pd.DataFrame(results)
     df.to_csv(OUT_IMAGES / "simscores_final.csv")
     return df
-"""
-
-
-def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser()
-    p.add_argument(
-        "--run_type",
-        type=str,
-        default="validation",
-        help="Input run type(either 'validation' or 'test' or 'all')",
-    )
-    p.add_argument(
-        "--parallel",
-        action="store_true",
-        help="Run in parallel",
-    )
-    return p
-
-
-def main(argv: Optional[List[str]] = None) -> pd.DataFrame:
-    if argv is None:
-        argv = sys.argv[1:]  # common pattern for CLI entry points
-    args = build_parser().parse_args(argv)
-    run_type = args.run_type
-    parallel = args.parallel
-    print(f"Run type: {run_type}, parallel: {parallel}")
-    if run_type == "all":
-        folder_names = ["validation", "test"]
-    else:
-        folder_names = [run_type]
-    results = []
-    # for folder_name in ["validation"]:  # , "test"]:
-    for folder_name in folder_names:
-        input_folder = IMAGE_ROOT / folder_name
-        output_path = OUT_IMAGES / input_folder.name
-        output_path.mkdir(exist_ok=True, parents=True)
-        for parcel_id in range(30):
-            parcel_results = compute_parcel_similitary_scores(
-                parcel_id, input_folder, parallel=parallel
-            )
-            if parcel_results is not None:
-                results.extend(parcel_results)
-
-        df = pd.DataFrame(results)
-        df.to_csv(OUT_IMAGES / f"simscores_{folder_name}.csv")
-    df = pd.DataFrame(results)
-    df.to_csv(OUT_IMAGES / "simscores_final.csv")
-    return df
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()

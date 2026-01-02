@@ -1,11 +1,16 @@
 """
-adversarial_attack_generator.py
+adversarial_attack_generator.py (COMPLETE VERSION)
 
-Adds adversarial noise to parcel images.
-- FGSM-style noise to every 2nd image
-- PGD-style noise to every 4th image
+Generates adversarial attacks on ALL parcel images with two modes:
+1. Random Noise Mode (fast, no model needed)
+2. Gradient-Based Targeted Mode (more realistic adversarial examples)
+
+Attack pattern:
+- FGSM attack on odd-indexed images (1st, 3rd, 5th, ...)
+- PGD attack on even-indexed images (2nd, 4th, 6th, ...)
 """
 
+import json
 import sys
 from pathlib import Path
 
@@ -15,6 +20,7 @@ sys.path.append(ROOT.as_posix())
 import cv2
 import numpy as np
 import torch
+import torch.nn.functional as F
 import tqdm
 
 # ============================================================================
@@ -25,12 +31,13 @@ ATTACK_DIR = IMAGE_ROOT / "adversarial_attacks"
 ATTACK_DIR.mkdir(exist_ok=True)
 
 # Attack parameters
-EPSILON_FGSM = (
-    8.0 / 255.0
-)  # Perturbation budget for FGSM (8 pixel values in [0,1] scale)
+EPSILON_FGSM = 8.0 / 255.0  # Perturbation budget for FGSM
 EPSILON_PGD = 8.0 / 255.0  # Perturbation budget for PGD
 ALPHA_PGD = 2.0 / 255.0  # Step size for PGD
 PGD_ITERATIONS = 10  # Number of PGD iterations
+
+# Attack mode: Choose which attack strategy to use
+USE_GRADIENT_BASED = True  # False = Random noise, True = Gradient-based targeted
 
 
 # ============================================================================
@@ -72,7 +79,7 @@ def tensor_to_image(tensor: torch.Tensor) -> np.ndarray:
     tensor = torch.clamp(tensor, 0, 1)
 
     # 1x3xHxW -> HxWx3
-    image_rgb = tensor.squeeze(0).permute(1, 2, 0).numpy()
+    image_rgb = tensor.squeeze(0).permute(1, 2, 0).cpu().numpy()
 
     # Scale to [0, 255]
     image_rgb = (image_rgb * 255).astype(np.uint8)
@@ -84,7 +91,7 @@ def tensor_to_image(tensor: torch.Tensor) -> np.ndarray:
 
 
 # ============================================================================
-# Adversarial Attack Functions (No Model Required)
+# Mode 1: Random Noise Attacks (No Model Required)
 # ============================================================================
 def fgsm_noise(image_tensor: torch.Tensor, epsilon: float) -> torch.Tensor:
     """
@@ -154,31 +161,90 @@ def pgd_noise(
 
 
 # ============================================================================
-# Alternative: Gradient-based attacks using a simple target
+# Mode 2: Gradient-Based Targeted Attacks
 # ============================================================================
-def fgsm_attack_targeted(image_tensor: torch.Tensor, epsilon: float) -> torch.Tensor:
+def create_target_pattern(
+    image_tensor: torch.Tensor, pattern_type: str = "inverted"
+) -> torch.Tensor:
+    """
+    Create a target pattern for gradient-based attacks.
+
+    Args:
+        image_tensor: Input image tensor (1x3xHxW)
+        pattern_type: Type of target pattern
+            - "inverted": 1.0 - image (inverted colors)
+            - "gray": Grayscale image
+            - "random": Random target image
+            - "shifted": Color-shifted image
+
+    Returns:
+        Target tensor
+    """
+    if pattern_type == "inverted":
+        # Invert colors: target is complement of original
+        target = 1.0 - image_tensor
+
+    elif pattern_type == "gray":
+        # Convert to grayscale
+        gray = (
+            0.299 * image_tensor[:, 0:1, :, :]
+            + 0.587 * image_tensor[:, 1:2, :, :]
+            + 0.114 * image_tensor[:, 2:3, :, :]
+        )
+        target = gray.repeat(1, 3, 1, 1)
+
+    elif pattern_type == "random":
+        # Random target image
+        target = torch.rand_like(image_tensor)
+
+    elif pattern_type == "shifted":
+        # Shift color channels: RGB -> BRG
+        target = torch.cat(
+            [
+                image_tensor[:, 2:3, :, :],  # B -> R
+                image_tensor[:, 0:1, :, :],  # R -> G
+                image_tensor[:, 1:2, :, :],  # G -> B
+            ],
+            dim=1,
+        )
+    else:
+        # Default: inverted
+        target = 1.0 - image_tensor
+
+    return target.detach()
+
+
+def fgsm_attack_targeted(
+    image_tensor: torch.Tensor, epsilon: float, target_pattern: str = "inverted"
+) -> torch.Tensor:
     """
     FGSM attack that tries to change pixel values towards a target pattern.
 
+    Uses gradient-based optimization to create adversarial examples.
+
     Args:
-        image_tensor: Input image (1x3xHxW)
+        image_tensor: Input image (1x3xHxW) in [0, 1]
         epsilon: Perturbation budget
+        target_pattern: Type of target pattern (see create_target_pattern)
 
     Returns:
-        Adversarial image
+        Adversarial image tensor
     """
+    # Ensure gradient tracking
+    image_tensor = image_tensor.clone().detach()
     image_tensor.requires_grad = True
 
-    # Create a target (e.g., inverted image or random target)
-    target = 1.0 - image_tensor.detach()  # Inverted image as target
+    # Create target
+    target = create_target_pattern(image_tensor, target_pattern)
 
     # Compute loss (MSE between current and target)
-    loss = torch.nn.functional.mse_loss(image_tensor, target)
+    # We want to minimize distance to target = maximize change
+    loss = F.mse_loss(image_tensor, target)
 
     # Compute gradient
     loss.backward()
 
-    # FGSM step
+    # FGSM step: move in gradient direction
     gradient_sign = image_tensor.grad.sign()
     adversarial = image_tensor + epsilon * gradient_sign
     adversarial = torch.clamp(adversarial, 0, 1).detach()
@@ -187,33 +253,40 @@ def fgsm_attack_targeted(image_tensor: torch.Tensor, epsilon: float) -> torch.Te
 
 
 def pgd_attack_targeted(
-    image_tensor: torch.Tensor, epsilon: float, alpha: float, iterations: int
+    image_tensor: torch.Tensor,
+    epsilon: float,
+    alpha: float,
+    iterations: int,
+    target_pattern: str = "inverted",
 ) -> torch.Tensor:
     """
     PGD attack that tries to change pixel values towards a target pattern.
 
+    Iterative gradient-based attack that is stronger than FGSM.
+
     Args:
-        image_tensor: Input image (1x3xHxW)
+        image_tensor: Input image (1x3xHxW) in [0, 1]
         epsilon: Perturbation budget
-        alpha: Step size
+        alpha: Step size per iteration
         iterations: Number of iterations
+        target_pattern: Type of target pattern (see create_target_pattern)
 
     Returns:
-        Adversarial image
+        Adversarial image tensor
     """
-    original = image_tensor.clone()
-    adversarial = image_tensor.clone()
+    original = image_tensor.clone().detach()
+    adversarial = image_tensor.clone().detach()
 
-    # Create target
-    target = 1.0 - original  # Inverted image
+    # Create target once
+    target = create_target_pattern(original, target_pattern)
 
-    for _ in range(iterations):
+    for iteration in range(iterations):
         adversarial.requires_grad = True
 
         # Compute loss
-        loss = torch.nn.functional.mse_loss(adversarial, target)
+        loss = F.mse_loss(adversarial, target)
 
-        # Backward
+        # Backward pass
         loss.backward()
 
         # Get gradient sign
@@ -230,21 +303,28 @@ def pgd_attack_targeted(
 
 
 # ============================================================================
-# Main Processing
+# Main Processing Function
 # ============================================================================
 def generate_adversarial_images(
-    image_root: Path, output_dir: Path, use_gradient_based: bool = False
+    image_root: Path,
+    output_dir: Path,
+    use_gradient_based: bool = False,
+    target_pattern: str = "inverted",
 ):
     """
-    Generate adversarial noise on images.
+    Generate adversarial attacks on ALL images alternately:
+    - Odd indices (0, 2, 4, ...) -> FGSM
+    - Even indices (1, 3, 5, ...) -> PGD
 
     Args:
-        image_root: Directory containing images
-        output_dir: Output directory
-        use_gradient_based: If True, use gradient-based attacks with targets.
+        image_root: Root directory containing images
+        output_dir: Directory to save adversarial images
+        use_gradient_based: If True, use gradient-based targeted attacks.
                            If False, use simple random noise attacks.
+        target_pattern: Target pattern for gradient-based attacks
     """
     # Find all JPG images
+    rename_dict = {}
     image_paths = sorted(image_root.rglob("*.jpg"))
     print(f"Found {len(image_paths)} JPG images")
 
@@ -252,24 +332,33 @@ def generate_adversarial_images(
         print("No images found! Check IMAGE_ROOT path.")
         return
 
-    # Choose attack functions
+    # Display attack mode
+    attack_mode = "Gradient-based targeted" if use_gradient_based else "Random noise"
+    print(f"\nAttack mode: {attack_mode}")
     if use_gradient_based:
-        fgsm_fn = fgsm_attack_targeted
-        pgd_fn = pgd_attack_targeted
-        attack_mode = "Gradient-based (with targets)"
-    else:
-        fgsm_fn = fgsm_noise
-        pgd_fn = pgd_noise
-        attack_mode = "Random noise"
+        print(f"Target pattern: {target_pattern}")
 
-    print(f"Attack mode: {attack_mode}")
+    print(f"\nAttack strategy:")
+    print(f"  - Odd-indexed images (1st, 3rd, 5th, ...) -> FGSM")
+    print(f"  - Even-indexed images (2nd, 4th, 6th, ...) -> PGD")
+    print(f"  - Total images to attack: {len(image_paths)}")
+
+    # Select attack functions based on mode
+    if use_gradient_based:
+        fgsm_fn = lambda img: fgsm_attack_targeted(img, EPSILON_FGSM, target_pattern)
+        pgd_fn = lambda img: pgd_attack_targeted(
+            img, EPSILON_PGD, ALPHA_PGD, PGD_ITERATIONS, target_pattern
+        )
+    else:
+        fgsm_fn = lambda img: fgsm_noise(img, EPSILON_FGSM)
+        pgd_fn = lambda img: pgd_noise(img, EPSILON_PGD, ALPHA_PGD, PGD_ITERATIONS)
 
     # Process images
     fgsm_count = 0
     pgd_count = 0
 
     for idx, image_path in enumerate(
-        tqdm.tqdm(image_paths, desc="Adding adversarial noise")
+        tqdm.tqdm(image_paths, desc="Generating adversarial attacks")
     ):
         # Read image
         image_bgr = cv2.imread(str(image_path))
@@ -280,45 +369,48 @@ def generate_adversarial_images(
         # Convert to tensor
         image_tensor = image_to_tensor(image_bgr)
 
-        # Determine attack type
-        attack_type = None
-
-        if (idx + 1) % 4 == 0:  # Every 4th image -> PGD
-            attack_type = "pgd"
-            if use_gradient_based:
-                adversarial_tensor = pgd_fn(
-                    image_tensor, EPSILON_PGD, ALPHA_PGD, PGD_ITERATIONS
-                )
-            else:
-                adversarial_tensor = pgd_fn(
-                    image_tensor, EPSILON_PGD, ALPHA_PGD, PGD_ITERATIONS
-                )
-            pgd_count += 1
-
-        elif (idx + 1) % 2 == 0:  # Every 2nd image (not 4th) -> FGSM
+        # Determine attack type based on index
+        # Odd indices (0, 2, 4, ...) -> FGSM
+        # Even indices (1, 3, 5, ...) -> PGD
+        if idx % 2 == 0:  # Odd-indexed (0-based: 0, 2, 4 = 1st, 3rd, 5th)
             attack_type = "fgsm"
-            adversarial_tensor = fgsm_fn(image_tensor, EPSILON_FGSM)
+            adversarial_tensor = fgsm_fn(image_tensor)
             fgsm_count += 1
-        else:
-            continue  # Skip
+        else:  # Even-indexed (0-based: 1, 3, 5 = 2nd, 4th, 6th)
+            attack_type = "pgd"
+            adversarial_tensor = pgd_fn(image_tensor)
+            pgd_count += 1
 
         # Convert back to image
         adversarial_bgr = tensor_to_image(adversarial_tensor)
 
-        # Save with suffix
+        # Save with suffix maintaining directory structure
         relative_path = image_path.relative_to(image_root)
         output_path = (
             output_dir / relative_path.parent / f"{image_path.stem}_{attack_type}.jpg"
         )
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
+        rename_dict[f"{image_path.stem}.jpg"] = f"{image_path.stem}_{attack_type}.jpg"
+
         cv2.imwrite(str(output_path), adversarial_bgr)
 
     print(f"\n{'='*80}")
-    print(f"Total FGSM attacked images: {fgsm_count}")
-    print(f"Total PGD attacked images: {pgd_count}")
-    print(f"Adversarial images saved to: {output_dir}")
+    print(f"Attack Summary:")
+    print(f"  Attack mode:               {attack_mode}")
+    print(f"  Total images processed:    {len(image_paths)}")
+    print(f"  FGSM attacked images:      {fgsm_count}")
+    print(f"  PGD attacked images:       {pgd_count}")
+    print(f"  Total adversarial images:  {fgsm_count + pgd_count}")
+    print(f"  Adversarial images saved to: {output_dir}")
     print(f"{'='*80}")
+
+    print("Writing rename Json file")
+
+    output_path = output_dir / "adversarial_rename_map.json"
+
+    with open(output_path, "w") as f:
+        json.dump(rename_dict, f, indent=2)
 
 
 # ============================================================================
@@ -326,23 +418,35 @@ def generate_adversarial_images(
 # ============================================================================
 if __name__ == "__main__":
     print("=" * 80)
-    print("Simple Adversarial Noise Generator (No Keypoint Detection)")
+    print("Adversarial Attack Generator - Complete Version")
     print("=" * 80)
     print(f"Image Root: {IMAGE_ROOT}")
     print(f"Output Directory: {ATTACK_DIR}")
-    print(f"FGSM Epsilon: {EPSILON_FGSM:.4f}")
-    print(
-        f"PGD Epsilon: {EPSILON_PGD:.4f}, Alpha: {ALPHA_PGD:.4f}, Iterations: {PGD_ITERATIONS}"
-    )
+    print(f"\nAttack Parameters:")
+    print(f"  FGSM Epsilon: {EPSILON_FGSM:.4f} ({EPSILON_FGSM * 255:.1f}/255)")
+    print(f"  PGD Epsilon:  {EPSILON_PGD:.4f} ({EPSILON_PGD * 255:.1f}/255)")
+    print(f"  PGD Alpha:    {ALPHA_PGD:.4f} ({ALPHA_PGD * 255:.1f}/255)")
+    print(f"  PGD Iterations: {PGD_ITERATIONS}")
     print("=" * 80)
 
-    # Choose attack mode:
-    # False = Simple random noise (no gradients needed)
-    # True = Gradient-based with target pattern
-    USE_GRADIENT_BASED = True
+    # Configure attack mode here
+    # USE_GRADIENT_BASED = False  # Set at top of file
+    TARGET_PATTERN = "inverted"  # Options: "inverted", "gray", "random", "shifted"
+
+    print(
+        f"\nAttack Mode: {'Gradient-based' if USE_GRADIENT_BASED else 'Random noise'}"
+    )
+    if USE_GRADIENT_BASED:
+        print(f"Target Pattern: {TARGET_PATTERN}")
+    print()
 
     generate_adversarial_images(
-        IMAGE_ROOT, ATTACK_DIR, use_gradient_based=USE_GRADIENT_BASED
+        IMAGE_ROOT,
+        ATTACK_DIR,
+        use_gradient_based=USE_GRADIENT_BASED,
+        target_pattern=TARGET_PATTERN,
     )
 
-    print("\nDone!")
+    print(
+        "\n✓ Done! Run create_adversarial_annotations.py to generate COCO annotations."
+    )

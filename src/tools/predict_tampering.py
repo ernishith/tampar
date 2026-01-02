@@ -1,5 +1,7 @@
+import argparse
 import sys
 from pathlib import Path
+from typing import List, Optional
 
 ROOT = Path(__file__).parent.parent.parent
 sys.path.append(ROOT.as_posix())
@@ -9,6 +11,7 @@ import pandas as pd
 from src.tampering.compare import METRICS, CompareType
 from src.tampering.evaluate import evaluate
 from src.tampering.predictor import TamperingClassificator
+from joblib import dump, load
 
 SPLIT_STRING = "___"
 
@@ -111,11 +114,12 @@ def train_predictor(
         else:
             predictor.test_split_size = 0
             model, train_metrics, test_metrics = predictor.train()
+            dump(model, "tamparmodel.joblib") # Save the trained model
 
-            X_test = data_test[scores].to_numpy().astype(float)
-            y_test = data_test["tampered"].to_numpy().astype(int)
+            #X_test = data_test[scores].to_numpy().astype(float)
+            #y_test = data_test["tampered"].to_numpy().astype(int)
             ids_test = data_test["id"].to_numpy()
-            test_metrics = evaluate(model, X_test, y_test)
+            #test_metrics = evaluate(model, X_test, y_test)
             results_performance.append(
                 {
                     "predictor": predictor_type,
@@ -131,7 +135,7 @@ def train_predictor(
                         )
                         if value > 0
                     },
-                    **test_metrics,
+                    **train_metrics,
                 }
             )
 
@@ -139,13 +143,69 @@ def train_predictor(
     return df_results_
 
 
-def main():
+"""def main():
     df = load_results(ROOT / "data" / "misc" / "simscores_validation.csv")
     df_final = create_pivot(df)
     #df_results = train_predictor(df_final, validate=True, gt_keypoints=False)
     df_results = train_predictor(df_final, validate=True, gt_keypoints=False, predictor_type="rf")
     df_results.to_csv("tampering_results.csv")
+"""
+
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser()
+    p.add_argument(
+        "--run_type",
+        type=str,
+        default="validation",
+        help="Input run type(either 'validation' or 'test' or 'all')",
+    )
+    p.add_argument(
+        "--parallel",
+        action="store_true",
+        help="Run in parallel",
+    )
+    return p
+
+
+def main(argv: Optional[List[str]] = None):
+    if argv is None:
+        argv = sys.argv[1:]  # common pattern for CLI entry points
+    args = build_parser().parse_args(argv)
+    run_type = args.run_type
+    parallel = args.parallel
+    print(f"Run type: {run_type}, parallel: {parallel}")
+    if run_type == "validation" or run_type == "train" or run_type == "test":
+        if run_type == "train":
+            file_type = "validation"
+        else:
+            file_type = run_type
+    else:
+        raise ValueError("run_type must be either 'validation' or 'test'")
+
+    df = load_results(ROOT / "data" / "misc" / "simscores_validation.csv")
+    df_final = create_pivot(df)
+    # df_results = train_predictor(df_final, validate=True, gt_keypoints=False)
+    if run_type == "validation":
+        df_results = train_predictor(
+            df_final, validate=True, gt_keypoints=False, predictor_type="rf"
+        )
+        df_results.to_csv("tampering_results.csv")
+    if run_type == "train":
+        df_results = train_predictor(
+            df_final, validate=False, gt_keypoints=False, predictor_type="rf"
+        )
+        df_results.to_csv("tampering_results_train.csv")
+    if run_type == "test":
+        df_test = load_results(ROOT / "data" / "misc" / f"simscores_{file_type}.csv")
+        df_final_test = create_pivot(df_test)
+        df_results_test = test_predictor(
+            df_final, validate=False, gt_keypoints=False, predictor_type="rf"
+        )
+        df_results_test.to_csv("tampering_results_test.csv")
+
+
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

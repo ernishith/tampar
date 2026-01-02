@@ -159,7 +159,10 @@ def main(argv: Optional[List[str]] = None) -> pd.DataFrame:
     if run_type == "all":
         folder_names = ["validation", "test"]
     else:
-        folder_names = [run_type]
+        if run_type == "validation" or run_type == "test":
+            folder_names = [run_type]
+        else:
+            raise ValueError("run_type must be either 'validation', 'test' or 'all'")
     results = []
     # for folder_name in ["validation"]:  # , "test"]:
     for folder_name in folder_names:

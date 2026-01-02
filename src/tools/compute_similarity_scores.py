@@ -136,8 +136,8 @@ def main(parallel=False) -> pd.DataFrame:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser()
     p.add_argument(
-        "run_type",
-        nargs="?",
+        "--run_type",
+        type=str,
         default="validation",
         help="Input run type(either 'validation' or 'test' or 'all')",
     )

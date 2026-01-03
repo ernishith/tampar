@@ -136,7 +136,7 @@ def main(parallel=False) -> pd.DataFrame:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser()
     p.add_argument(
-        "--run_type",
+        "--mode",
         type=str,
         default="validation",
         help="Input run type(either 'validation' or 'test' or 'all')",
@@ -153,16 +153,16 @@ def main(argv: Optional[List[str]] = None) -> pd.DataFrame:
     if argv is None:
         argv = sys.argv[1:]  # common pattern for CLI entry points
     args = build_parser().parse_args(argv)
-    run_type = args.run_type
+    mode = args.mode
     parallel = args.parallel
-    print(f"Run type: {run_type}, parallel: {parallel}")
-    if run_type == "all":
+    print(f"Mode: {mode}, parallel: {parallel}")
+    if mode == "all":
         folder_names = ["validation", "test"]
     else:
-        if run_type == "validation" or run_type == "test":
-            folder_names = [run_type]
+        if mode == "validation" or mode == "test":
+            folder_names = [mode]
         else:
-            raise ValueError("run_type must be either 'validation', 'test' or 'all'")
+            raise ValueError("mode must be either 'validation', 'test' or 'all'")
     results = []
     # for folder_name in ["validation"]:  # , "test"]:
     for folder_name in folder_names:

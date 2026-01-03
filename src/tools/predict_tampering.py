@@ -69,6 +69,7 @@ def train_predictor(
     validate: bool = True,
     gt_keypoints: bool = False,
     predictor_type: str = "simple_threshold",
+    mode: str = "validation",
 ) -> pd.DataFrame:
     SCORES = [n for n in df_final.columns if n.startswith("score")]
     data_train, data_test = get_data_splits(df_final, gt_keypoints=gt_keypoints)
@@ -87,39 +88,67 @@ def train_predictor(
         ids_train = data_train["id"].to_numpy()
         predictor.set_data(X_train, y_train, ids_train)
         predictor.feature_names = [s.replace("score_", "") for s in scores]
-        if validate:
-            (
-                train_metrics_summary,
-                val_metrics_summary,
-                models,
-            ) = predictor.validate_model(5)
-            results_performance.append(
-                {
-                    "predictor": predictor_type,
-                    "compare_types": ", ".join(compare_types),
-                    "scores": ", ".join(
-                        set(["_".join(s.split("_")[1:-1]) for s in scores])
-                    ),
-                    "feature_importance": {
-                        name: value
-                        for name, value in zip(
-                            predictor.feature_names,
-                            models[0].feature_importances_,
-                        )
-                        if value > 0
-                    },
-                    **val_metrics_summary,
-                }
-            )
-        else:
-            predictor.test_split_size = 0
-            model, train_metrics, test_metrics = predictor.train()
-            dump(model, "tamparmodel.joblib")  # Save the trained model
+        if mode == "validation" or mode == "train":
+            if validate:
+                (
+                    train_metrics_summary,
+                    val_metrics_summary,
+                    models,
+                ) = predictor.validate_model(5)
+                results_performance.append(
+                    {
+                        "predictor": predictor_type,
+                        "compare_types": ", ".join(compare_types),
+                        "scores": ", ".join(
+                            set(["_".join(s.split("_")[1:-1]) for s in scores])
+                        ),
+                        "feature_importance": {
+                            name: value
+                            for name, value in zip(
+                                predictor.feature_names,
+                                models[0].feature_importances_,
+                            )
+                            if value > 0
+                        },
+                        **val_metrics_summary,
+                    }
+                )
+            else:
+                predictor.test_split_size = 0
+                model, train_metrics, test_metrics = predictor.train()
+                dump(
+                    model, f"tamparmodel_{predictor_type}_{compare_types}.joblib"
+                )  # Save the trained model
 
-            # X_test = data_test[scores].to_numpy().astype(float)
-            # y_test = data_test["tampered"].to_numpy().astype(int)
+                # X_test = data_test[scores].to_numpy().astype(float)
+                # y_test = data_test["tampered"].to_numpy().astype(int)
+                ids_test = data_test["id"].to_numpy()
+                # test_metrics = evaluate(model, X_test, y_test)
+                results_performance.append(
+                    {
+                        "predictor": predictor_type,
+                        "compare_types": ", ".join(compare_types),
+                        "scores": ",".join(
+                            set(["_".join(s.split("_")[1:-1]) for s in scores])
+                        ),
+                        "feature_importance": {
+                            name: value
+                            for name, value in zip(
+                                predictor.feature_names,
+                                model.feature_importances_,
+                            )
+                            if value > 0
+                        },
+                        **train_metrics,
+                    }
+                )
+        else:  # mode == "test"
+            predictor.test_split_size = 0
+            model = load(f"tamparmodel_{predictor_type}_{compare_types}.joblib")
+            X_test = data_test[scores].to_numpy().astype(float)
+            y_test = data_test["tampered"].to_numpy().astype(int)
             ids_test = data_test["id"].to_numpy()
-            # test_metrics = evaluate(model, X_test, y_test)
+            test_metrics = evaluate(model, X_test, y_test)
             results_performance.append(
                 {
                     "predictor": predictor_type,
@@ -135,7 +164,7 @@ def train_predictor(
                         )
                         if value > 0
                     },
-                    **train_metrics,
+                    **test_metrics,
                 }
             )
 
@@ -155,15 +184,21 @@ def train_predictor(
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser()
     p.add_argument(
-        "--run_type",
+        "--mode",
         type=str,
         default="validation",
-        help="Input run type(either 'validation' or 'test' or 'all')",
+        help="Input run type(either 'validation' or 'test' or 'train')",
     )
     p.add_argument(
-        "--parallel",
-        action="store_true",
-        help="Run in parallel",
+        "--gt_keypoints",
+        action="store_true",  # default is false
+        help="ground truth keypoints available",
+    )
+    p.add_argument(
+        "--predictor",
+        type=str,
+        default="simple_threshold",
+        help="Input predictor type(either 'rf' or default is 'simple_threshold')",
     )
     return p
 
@@ -172,35 +207,48 @@ def main(argv: Optional[List[str]] = None):
     if argv is None:
         argv = sys.argv[1:]  # common pattern for CLI entry points
     args = build_parser().parse_args(argv)
-    run_type = args.run_type
-    parallel = args.parallel
-    print(f"Run type: {run_type}, parallel: {parallel}")
-    if run_type == "validation" or run_type == "train" or run_type == "test":
-        if run_type == "train":
+    mode = args.mode
+    predictor = args.predictor
+    gt_keypoints = args.gt_keypoints
+    print(f"Mode: {mode}, gt_keypoints: {gt_keypoints}, predictor: {predictor}")
+    if mode == "validation" or mode == "train" or mode == "test":
+        if mode == "train":
             file_type = "validation"
         else:
-            file_type = run_type
+            file_type = mode
     else:
         raise ValueError("run_type must be either 'validation' or 'test'")
 
     df = load_results(ROOT / "data" / "misc" / "simscores_validation.csv")
     df_final = create_pivot(df)
     # df_results = train_predictor(df_final, validate=True, gt_keypoints=False)
-    if run_type == "validation":
+    if mode == "validation":
         df_results = train_predictor(
-            df_final, validate=True, gt_keypoints=False, predictor_type="rf"
+            df_final,
+            validate=True,
+            gt_keypoints=gt_keypoints,
+            predictor_type=predictor,
+            mode=mode,
         )
         df_results.to_csv("tampering_results.csv")
-    if run_type == "train":
+    if mode == "train":
         df_results = train_predictor(
-            df_final, validate=False, gt_keypoints=False, predictor_type="rf"
+            df_final,
+            validate=False,
+            gt_keypoints=gt_keypoints,
+            predictor_type=predictor,
+            mode=mode,
         )
         df_results.to_csv("tampering_results_train.csv")
-    if run_type == "test":
+    if mode == "test":
         df_test = load_results(ROOT / "data" / "misc" / f"simscores_{file_type}.csv")
         df_final_test = create_pivot(df_test)
-        df_results_test = test_predictor(
-            df_final, validate=False, gt_keypoints=False, predictor_type="rf"
+        df_results_test = train_predictor(
+            df_final_test,
+            validate=False,
+            gt_keypoints=gt_keypoints,
+            predictor_type=predictor,
+            mode=mode,
         )
         df_results_test.to_csv("tampering_results_test.csv")
 

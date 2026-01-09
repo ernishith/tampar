@@ -377,10 +377,50 @@ def main():
         adversarial_rename_map=adversarial_rename_map,
     )
 
+<<<<<<< HEAD
     # Save combined annotation file
     print("\n" + "=" * 80)
     print("Saving Combined Annotation File")
     print("=" * 80)
+=======
+    # Find all original annotation files
+    annotation_files = [
+        f for f in IMAGE_ROOT.rglob("tampar*.json") if "adversarial" not in f.name
+    ]
+
+    if len(annotation_files) == 0:
+        print(f"\n❌ ERROR: No annotation files found matching pattern: tampar*.json")
+        return
+
+    print(f"\nFound {len(annotation_files)} annotation file(s):")
+    for ann_file in annotation_files:
+        print(f"  - {ann_file.name}")
+
+    # Process each annotation file
+    for annotation_file in annotation_files:
+        print("\n" + "=" * 80)
+        print(f"Processing: {annotation_file.name}")
+        print("=" * 80)
+
+        # Load original annotations
+        print(f"\nLoading original annotations...")
+        original_coco = load_coco_annotations(annotation_file)
+
+        # Create adversarial annotations
+        adversarial_coco = create_adversarial_annotations(
+            original_coco, IMAGE_ROOT, adversarial_rename_map
+        )
+
+        # Determine output path (same directory as original)
+        # tampar_sample_validation.json -> tampar_adversarial_validation.json
+        output_filename = annotation_file.name.replace("tampar", "tampar_adversarial")
+        output_path = annotation_file.parent / output_filename
+
+        # Save adversarial annotation file
+        print("\n" + "-" * 80)
+        print("Saving Adversarial Annotation File")
+        print("-" * 80)
+>>>>>>> 493d3a1 (Fix adversarial annotation creation bug)
 
     save_coco_annotations(combined_coco, COMBINED_ANNOTATION_FILE)
     validate_annotations(combined_coco)
@@ -390,6 +430,7 @@ def main():
     print("✓ Annotation Generation Complete!")
     print("=" * 80)
 
+<<<<<<< HEAD
     print(f"\nGenerated File:")
     print(f"  {COMBINED_ANNOTATION_FILE.name}")
     print(f"  - Contains ALL original images")
@@ -398,6 +439,12 @@ def main():
     print(
         f"  - Ratio: {len(combined_coco['images']) / len(original_coco['images']):.1f}x original"
     )
+=======
+    print(f"\nGenerated Files:")
+    for annotation_file in annotation_files:
+        output_filename = annotation_file.name.replace("tampar", "tampar_adversarial")
+        print(f"  - {output_filename}")
+>>>>>>> 493d3a1 (Fix adversarial annotation creation bug)
 
     print("\n" + "=" * 80)
 

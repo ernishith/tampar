@@ -1,7 +1,19 @@
 {
-  "id_01_20230516_142710.jpg": "id_01_20230516_142710_fgsm.jpg",
-  "id_01_20230523_160440.jpg": "id_01_20230523_160440_pgd.jpg",
-  "id_02_20230523_155152.jpg": "id_02_20230523_155152_fgsm.jpg",
-  "id_07_20230523_141624.jpg": "id_07_20230523_141624_pgd.jpg",
-  "id_09_20230523_141315.jpg": "id_09_20230523_141315_fgsm.jpg"
+  "validation/base/id_00_20230512_102251.jpg": "adversarial_attacks/validation/base/id_00_20230512_102251_fgsm.jpg",
+  "validation/base/id_00_20230512_102302.jpg": "adversarial_attacks/validation/base/id_00_20230512_102302_pgd.jpg",
+  "validation/base/id_00_20230512_102313.jpg": "adversarial_attacks/validation/base/id_00_20230512_102313_fgsm.jpg",
+  "validation/carpet/id_00_20230523_155059.jpg": "adversarial_attacks/validation/carpet/id_00_20230523_155059_pgd.jpg",
+  "validation/carpet/id_00_20230523_155111.jpg": "adversarial_attacks/validation/carpet/id_00_20230523_155111_fgsm.jpg",
+  "validation/carpet/id_00_20230523_155115.jpg": "adversarial_attacks/validation/carpet/id_00_20230523_155115_pgd.jpg",
+  "validation/gravel/id_00_20230523_162359.jpg": "adversarial_attacks/validation/gravel/id_00_20230523_162359_fgsm.jpg",
+  "validation/gravel/id_00_20230523_162403.jpg": "adversarial_attacks/validation/gravel/id_00_20230523_162403_pgd.jpg",
+  "validation/gravel/id_00_20230523_162414.jpg": "adversarial_attacks/validation/gravel/id_00_20230523_162414_fgsm.jpg",
+  "validation/id_01_20230516_142710.jpg": "adversarial_attacks/validation/id_01_20230516_142710_pgd.jpg",
+  "validation/id_01_20230523_160440.jpg": "adversarial_attacks/validation/id_01_20230523_160440_fgsm.jpg",
+  "validation/id_02_20230523_155152.jpg": "adversarial_attacks/validation/id_02_20230523_155152_pgd.jpg",
+  "validation/id_07_20230523_141624.jpg": "adversarial_attacks/validation/id_07_20230523_141624_fgsm.jpg",
+  "validation/id_09_20230523_141315.jpg": "adversarial_attacks/validation/id_09_20230523_141315_pgd.jpg",
+  "validation/table/id_00_20230523_160510.jpg": "adversarial_attacks/validation/table/id_00_20230523_160510_fgsm.jpg",
+  "validation/table/id_00_20230523_160514.jpg": "adversarial_attacks/validation/table/id_00_20230523_160514_pgd.jpg",
+  "validation/table/id_00_20230523_160533.jpg": "adversarial_attacks/validation/table/id_00_20230523_160533_fgsm.jpg"
 }

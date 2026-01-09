@@ -11,6 +11,7 @@ Attack pattern:
 """
 
 import json
+import shutil
 import sys
 from pathlib import Path
 
@@ -43,6 +44,25 @@ USE_GRADIENT_BASED = True  # False = Random noise, True = Gradient-based targete
 # ============================================================================
 # Helper Functions
 # ============================================================================
+
+
+def clean_adversarial_directory(attack_dir: Path):
+    """
+    Delete adversarial attack directory if it exists.
+
+    Args:
+        attack_dir: Directory to clean
+    """
+    if attack_dir.exists():
+        print(f"\n⚠️  Adversarial directory already exists: {attack_dir}")
+        print(f"Deleting existing directory...")
+        shutil.rmtree(attack_dir)
+        print(f"✓ Deleted successfully")
+
+    attack_dir.mkdir(parents=True, exist_ok=True)
+    print(f"✓ Created fresh adversarial directory: {attack_dir}")
+
+
 def image_to_tensor(image_bgr: np.ndarray) -> torch.Tensor:
     """
     Convert BGR image to normalized tensor [0, 1].
@@ -325,7 +345,15 @@ def generate_adversarial_images(
     """
     # Find all JPG images
     rename_dict = {}
-    image_paths = sorted(image_root.rglob("*.jpg"))
+    exclude_dirs = {"uvmaps", "adversarial_attacks"}
+    image_paths = []
+
+    for jpg_file in image_root.rglob("*.jpg"):
+        # Check if any parent directory is in exclude list
+        if not any(parent.name in exclude_dirs for parent in jpg_file.parents):
+            image_paths.append(jpg_file)
+
+    image_paths = sorted(image_paths)
     print(f"Found {len(image_paths)} JPG images")
 
     if len(image_paths) == 0:
@@ -391,7 +419,12 @@ def generate_adversarial_images(
         )
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        rename_dict[f"{image_path.stem}.jpg"] = f"{image_path.stem}_{attack_type}.jpg"
+        # Store mapping for annotations (relative path from image_root)
+        rename_dict[relative_path.as_posix()] = (
+            (output_dir / relative_path.parent / f"{image_path.stem}_{attack_type}.jpg")
+            .relative_to(image_root)
+            .as_posix()
+        )
 
         cv2.imwrite(str(output_path), adversarial_bgr)
 
@@ -405,12 +438,13 @@ def generate_adversarial_images(
     print(f"  Adversarial images saved to: {output_dir}")
     print(f"{'='*80}")
 
-    print("Writing rename Json file")
+    print("\nWriting rename Json file...")
 
-    output_path = output_dir / "adversarial_rename_map.json"
+    rename_map_path = output_dir / "adversarial_rename_map.json"
 
-    with open(output_path, "w") as f:
+    with open(rename_map_path, "w") as f:
         json.dump(rename_dict, f, indent=2)
+    print(f"✓ Rename map saved to: {rename_map_path}")
 
 
 # ============================================================================
@@ -428,6 +462,9 @@ if __name__ == "__main__":
     print(f"  PGD Alpha:    {ALPHA_PGD:.4f} ({ALPHA_PGD * 255:.1f}/255)")
     print(f"  PGD Iterations: {PGD_ITERATIONS}")
     print("=" * 80)
+
+    # Clean adversarial directory if exists
+    clean_adversarial_directory(ATTACK_DIR)
 
     # Configure attack mode here
     # USE_GRADIENT_BASED = False  # Set at top of file

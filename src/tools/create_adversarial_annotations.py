@@ -338,12 +338,12 @@ def main():
     print(f"  Loaded {len(adversarial_rename_map)} image mappings")
 
     # Find all original annotation files
-    annotation_files = list(IMAGE_ROOT.rglob("tampar_sample_*.json"))
+    annotation_files = [
+        f for f in IMAGE_ROOT.rglob("tampar*.json") if "adversarial" not in f.name
+    ]
 
     if len(annotation_files) == 0:
-        print(
-            f"\n❌ ERROR: No annotation files found matching pattern: tampar_sample_*.json"
-        )
+        print(f"\n❌ ERROR: No annotation files found matching pattern: tampar*.json")
         return
 
     print(f"\nFound {len(annotation_files)} annotation file(s):")
@@ -367,9 +367,7 @@ def main():
 
         # Determine output path (same directory as original)
         # tampar_sample_validation.json -> tampar_adversarial_validation.json
-        output_filename = annotation_file.name.replace(
-            "tampar_sample", "tampar_adversarial"
-        )
+        output_filename = annotation_file.name.replace("tampar", "tampar_adversarial")
         output_path = annotation_file.parent / output_filename
 
         # Save adversarial annotation file
@@ -387,9 +385,7 @@ def main():
 
     print(f"\nGenerated Files:")
     for annotation_file in annotation_files:
-        output_filename = annotation_file.name.replace(
-            "tampar_sample", "tampar_adversarial"
-        )
+        output_filename = annotation_file.name.replace("tampar", "tampar_adversarial")
         print(f"  - {output_filename}")
 
     print("\n" + "=" * 80)

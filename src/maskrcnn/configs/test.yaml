@@ -1,6 +1,7 @@
 _BASE_: "./Base-RCNN-FPN.yaml"
 MODEL:
   DEVICE: "cuda"
+  WEIGHTS: "/content/tampar/src/maskrcnn/weight/ResNet-50-FPN.pth"
   BACKBONE:
     NAME: "build_resnet_fpn_backbone"
   RESNETS:

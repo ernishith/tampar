@@ -38,6 +38,11 @@ def setup(args):
 def parse_args(args):
     parser = default_argument_parser()
     parser.add_argument("--gpus", default="0", help="Set GPUs that should be used")
+    parser.add_argument(
+        "--test_only",
+        action="store_true",  # default is false
+        help="for only running in test mode",
+    )
     args = parser.parse_args(args)
     print("Command Line Args:", args)
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus

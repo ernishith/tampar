@@ -10,6 +10,7 @@ MODEL:
   FPN:
     IN_FEATURES: ["res2", "res3", "res4", "res5"]
 DATASETS:
+  TRAIN: ("tampar_validation",)
   TEST: ("tampar_test",)
 SOLVER:
   IMS_PER_BATCH: 1

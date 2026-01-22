@@ -377,12 +377,6 @@ def main():
         adversarial_rename_map=adversarial_rename_map,
     )
 
-<<<<<<< HEAD
-    # Save combined annotation file
-    print("\n" + "=" * 80)
-    print("Saving Combined Annotation File")
-    print("=" * 80)
-=======
     # Find all original annotation files
     annotation_files = [
         f for f in IMAGE_ROOT.rglob("tampar*.json") if "adversarial" not in f.name
@@ -420,7 +414,6 @@ def main():
         print("\n" + "-" * 80)
         print("Saving Adversarial Annotation File")
         print("-" * 80)
->>>>>>> 493d3a1 (Fix adversarial annotation creation bug)
 
     save_coco_annotations(combined_coco, COMBINED_ANNOTATION_FILE)
     validate_annotations(combined_coco)
@@ -430,21 +423,10 @@ def main():
     print("✓ Annotation Generation Complete!")
     print("=" * 80)
 
-<<<<<<< HEAD
-    print(f"\nGenerated File:")
-    print(f"  {COMBINED_ANNOTATION_FILE.name}")
-    print(f"  - Contains ALL original images")
-    print(f"  - Contains ALL adversarial images (FGSM + PGD)")
-    print(f"  - Total: {len(combined_coco['images'])} images")
-    print(
-        f"  - Ratio: {len(combined_coco['images']) / len(original_coco['images']):.1f}x original"
-    )
-=======
     print(f"\nGenerated Files:")
     for annotation_file in annotation_files:
         output_filename = annotation_file.name.replace("tampar", "tampar_adversarial")
         print(f"  - {output_filename}")
->>>>>>> 493d3a1 (Fix adversarial annotation creation bug)
 
     print("\n" + "=" * 80)
 

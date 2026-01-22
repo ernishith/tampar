@@ -462,13 +462,11 @@ if __name__ == "__main__":
     print(f"  PGD Alpha:    {ALPHA_PGD:.4f} ({ALPHA_PGD * 255:.1f}/255)")
     print(f"  PGD Iterations: {PGD_ITERATIONS}")
     print("=" * 80)
-
     # Clean adversarial directory if exists
     clean_adversarial_directory(ATTACK_DIR)
-
     # Configure attack mode here
     # USE_GRADIENT_BASED = False  # Set at top of file
-    TARGET_PATTERN = "inverted"  # Options: "inverted", "gray", "random", "shifted"
+    # TARGET_PATTERN = "inverted"  # Options: "inverted", "gray", "random", "shifted"
 
     print(
         f"\nAttack Mode: {'Gradient-based' if USE_GRADIENT_BASED else 'Random noise'}"

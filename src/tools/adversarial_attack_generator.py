@@ -10,10 +10,13 @@ Attack pattern:
 - PGD attack on even-indexed images (2nd, 4th, 6th, ...)
 """
 
-import argparse
 import json
+import shutil
 import sys
 from pathlib import Path
+
+ROOT = Path(__file__).parent.parent.parent
+sys.path.append(ROOT.as_posix())
 
 import cv2
 import numpy as np
@@ -21,30 +24,45 @@ import torch
 import torch.nn.functional as F
 import tqdm
 
-# ROOT = Path(__file__).parent.parent.parent
-# sys.path.append(ROOT.as_posix())
-
-
 # ============================================================================
 # Configuration
 # ============================================================================
-# IMAGE_ROOT = ROOT / "data" / "tampar_sample"
-# ATTACK_DIR = IMAGE_ROOT / "adversarial_attacks"
-# ATTACK_DIR.mkdir(exist_ok=True)
+IMAGE_ROOT = ROOT / "data" / "tampar_sample"
+ATTACK_DIR = IMAGE_ROOT / "adversarial_attacks"
+ATTACK_DIR.mkdir(exist_ok=True)
 
 # Attack parameters
-# EPSILON_FGSM = 8.0 / 255.0  # Perturbation budget for FGSM
-# EPSILON_PGD = 8.0 / 255.0  # Perturbation budget for PGD
-# ALPHA_PGD = 2.0 / 255.0  # Step size for PGD
-# PGD_ITERATIONS = 10  # Number of PGD iterations
+EPSILON_FGSM = 8.0 / 255.0  # Perturbation budget for FGSM
+EPSILON_PGD = 8.0 / 255.0  # Perturbation budget for PGD
+ALPHA_PGD = 2.0 / 255.0  # Step size for PGD
+PGD_ITERATIONS = 10  # Number of PGD iterations
 
 # Attack mode: Choose which attack strategy to use
-# USE_GRADIENT_BASED = True  # False = Random noise, True = Gradient-based targeted
+USE_GRADIENT_BASED = True  # False = Random noise, True = Gradient-based targeted
 
 
 # ============================================================================
 # Helper Functions
 # ============================================================================
+
+
+def clean_adversarial_directory(attack_dir: Path):
+    """
+    Delete adversarial attack directory if it exists.
+
+    Args:
+        attack_dir: Directory to clean
+    """
+    if attack_dir.exists():
+        print(f"\n⚠️  Adversarial directory already exists: {attack_dir}")
+        print(f"Deleting existing directory...")
+        shutil.rmtree(attack_dir)
+        print(f"✓ Deleted successfully")
+
+    attack_dir.mkdir(parents=True, exist_ok=True)
+    print(f"✓ Created fresh adversarial directory: {attack_dir}")
+
+
 def image_to_tensor(image_bgr: np.ndarray) -> torch.Tensor:
     """
     Convert BGR image to normalized tensor [0, 1].
@@ -327,7 +345,15 @@ def generate_adversarial_images(
     """
     # Find all JPG images
     rename_dict = {}
-    image_paths = sorted(image_root.rglob("*.jpg"))
+    exclude_dirs = {"uvmaps", "adversarial_attacks"}
+    image_paths = []
+
+    for jpg_file in image_root.rglob("*.jpg"):
+        # Check if any parent directory is in exclude list
+        if not any(parent.name in exclude_dirs for parent in jpg_file.parents):
+            image_paths.append(jpg_file)
+
+    image_paths = sorted(image_paths)
     print(f"Found {len(image_paths)} JPG images")
 
     if len(image_paths) == 0:
@@ -393,7 +419,12 @@ def generate_adversarial_images(
         )
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        rename_dict[f"{image_path.stem}.jpg"] = f"{image_path.stem}_{attack_type}.jpg"
+        # Store mapping for annotations (relative path from image_root)
+        rename_dict[relative_path.as_posix()] = (
+            (output_dir / relative_path.parent / f"{image_path.stem}_{attack_type}.jpg")
+            .relative_to(image_root)
+            .as_posix()
+        )
 
         cv2.imwrite(str(output_path), adversarial_bgr)
 
@@ -407,77 +438,19 @@ def generate_adversarial_images(
     print(f"  Adversarial images saved to: {output_dir}")
     print(f"{'='*80}")
 
-    print("Writing rename Json file")
+    print("\nWriting rename Json file...")
 
-    output_path = output_dir / "adversarial_rename_map.json"
+    rename_map_path = output_dir / "adversarial_rename_map.json"
 
-    with open(output_path, "w") as f:
+    with open(rename_map_path, "w") as f:
         json.dump(rename_dict, f, indent=2)
-
-
-def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser()
-    p.add_argument(
-        "--image_root",
-        type=str,
-        default="/content/drive/MyDrive/TAMPAR_DATA/tampar",
-        help="Input root path containing images, defaults to /content/drive/MyDrive/TAMPAR_DATA/tampar",
-    )
-    p.add_argument(
-        "--e_fgsm",
-        type=str,
-        default="8.0",
-        help="input epsilon value for FGSM attack, defaults to 8.0 it translates to (8.0 / 255)",
-    )
-    p.add_argument(
-        "--e_pgd",
-        type=str,
-        default="8.0",
-        help="input epsilon value for PGD attack, defaults to 8.0 it translates to (8.0 / 255)",
-    )
-    p.add_argument(
-        "--alpha_pgd",
-        type=str,
-        default="2.0",
-        help="input alpha value for PGD attack, defaults to 2.0 it translates to (2.0 / 255)",
-    )
-    p.add_argument(
-        "--pgd_iterations",
-        type=str,
-        default="10",
-        help="input number of iterations for PGD attack, defaults to 10",
-    )
-    p.add_argument(
-        "--no_gradient_based",
-        dest="use_gradient_based",
-        action="store_false",  # default is true
-        help="Disable gradient based targeted attacks",
-    )
-    p.set_defaults(use_gradient_based=True)
-    p.add_argument(
-        "--target_pattern",
-        type=str,
-        default="inverted",
-        help="use this when --use_gradient_based is set, options are 'inverted', 'gray', 'random', 'shifted'. Default is 'inverted'",
-    )
-    return p
+    print(f"✓ Rename map saved to: {rename_map_path}")
 
 
 # ============================================================================
 # Main Entry Point
 # ============================================================================
 if __name__ == "__main__":
-    argv = sys.argv[1:]  # common pattern for CLI entry points
-    args = build_parser().parse_args(argv)
-    USE_GRADIENT_BASED = args.use_gradient_based
-    TARGET_PATTERN = args.target_pattern
-    IMAGE_ROOT = Path(args.image_root)
-    ATTACK_DIR = IMAGE_ROOT / "adversarial_attacks"
-    ATTACK_DIR.mkdir(exist_ok=True)
-    EPSILON_FGSM = float(args.e_fgsm) / 255.0
-    EPSILON_PGD = float(args.e_pgd) / 255.0
-    ALPHA_PGD = float(args.alpha_pgd) / 255.0
-    PGD_ITERATIONS = int(args.pgd_iterations)
     print("=" * 80)
     print("Adversarial Attack Generator - Complete Version")
     print("=" * 80)
@@ -490,9 +463,12 @@ if __name__ == "__main__":
     print(f"  PGD Iterations: {PGD_ITERATIONS}")
     print("=" * 80)
 
+    # Clean adversarial directory if exists
+    clean_adversarial_directory(ATTACK_DIR)
+
     # Configure attack mode here
     # USE_GRADIENT_BASED = False  # Set at top of file
-    # TARGET_PATTERN = "inverted"  # Options: "inverted", "gray", "random", "shifted"
+    TARGET_PATTERN = "inverted"  # Options: "inverted", "gray", "random", "shifted"
 
     print(
         f"\nAttack Mode: {'Gradient-based' if USE_GRADIENT_BASED else 'Random noise'}"

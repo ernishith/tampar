@@ -1,8 +1,9 @@
 import argparse
 import sys
 from pathlib import Path
-from turtle import pd
 from typing import List, Optional
+
+import pandas as pd
 
 ROOT = Path(__file__).parent.parent.parent
 sys.path.append(ROOT.as_posix())

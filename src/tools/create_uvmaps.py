@@ -225,7 +225,7 @@ if __name__ == "__main__":
     # 2. GROUND TRUTH UV MAPS
     print("\nGenerating GT UV Maps...")
     coco_merged = merge_coco_annotations(coco_annotations)
-    gt_infos = create_gt_uvmaps(coco_merged, image_root, uvmaps_dir, groundtruth=True)
+    # gt_infos = create_gt_uvmaps(coco_merged, image_root, uvmaps_dir, groundtruth=True)
 
     # 3. PREDICTION UV MAPS
     if not args.gt_only:

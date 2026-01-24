@@ -249,7 +249,7 @@ if __name__ == "__main__":
 
     # Summary
     print(f"\nCOMPLETE!")
-    print(f"GT side surfaces: {len(gt_infos)}")
+    # print(f"GT side surfaces: {len(gt_infos)}")
     print(f"GT files: {len(list(image_root.rglob('*_uvmap_gt.png')))}")
     if not args.gt_only:
         print(f"PRED files: {len(list(image_root.rglob('*_uvmap_pred.png')))}")

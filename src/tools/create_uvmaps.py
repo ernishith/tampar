@@ -1,6 +1,8 @@
+import argparse
 import sys
 from pathlib import Path
-from typing import List
+from turtle import pd
+from typing import List, Optional
 
 ROOT = Path(__file__).parent.parent.parent
 sys.path.append(ROOT.as_posix())
@@ -98,3 +100,32 @@ def create_gt_uvmaps(coco_annotations, groundtruth=True):
                 new_path = UVMAP_DIR / f"id_{str(parcel_id).zfill(2)}_uvmap.png"
                 cv2.imwrite(new_path.as_posix(), cv2.cvtColor(uvmap, cv2.COLOR_RGB2BGR))
     return view_infos
+
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser()
+    p.add_argument(
+        "--mode",
+        type=str,
+        default="gt",
+        help="Input uv map type to generate (either 'gt' or 'pred')",
+    )
+    return p
+
+
+def main(argv: Optional[List[str]] = None) -> pd.DataFrame:
+    if argv is None:
+        argv = sys.argv[1:]  # common pattern for CLI entry points
+    args = build_parser().parse_args(argv)
+    mode = args.mode
+    if mode == "pred":
+        create_pred_uvmaps()
+    elif mode == "gt":
+        create_gt_uvmaps()
+    else:
+        raise ValueError(f"Unknown mode: {mode}")
+    return
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

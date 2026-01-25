@@ -68,21 +68,35 @@ def compute_sidesurface_similarity_scores(
     return results
 
 
-def compute_parcel_similitary_scores(parcel_id: int, image_path: Path, parallel=True):
+def compute_parcel_similitary_scores(
+    parcel_id: int, image_path: Path, parallel=True, adversarial_type="none"
+):
     parcel_results = []
     gt_uvmap_path = UVMAP_DIR / f"id_{str(parcel_id).zfill(2)}_uvmap.png"
     if not gt_uvmap_path.exists():
         return None
     gt_uvmap = cv2.imread(gt_uvmap_path.as_posix())
     gt_uvmap = cv2.cvtColor(gt_uvmap, cv2.COLOR_BGR2RGB)
-    references_image_paths = [
-        f
-        for f in image_path.rglob(f"id_{str(parcel_id).zfill(2)}_*_uvmap_*.png")
-        if (f.parent.name not in ["uvmaps", "base"])
-    ]
+    if adversarial_type == "none":
+        references_image_paths = [
+            f
+            for f in image_path.rglob(f"id_{str(parcel_id).zfill(2)}_*_uvmap_*.png")
+            if (f.parent.name not in ["uvmaps", "base"])
+        ]
+    else:
+        references_image_paths = [
+            f
+            for f in image_path.rglob(
+                f"id_{str(parcel_id).zfill(2)}_*_{adversarial_type}_uvmap_*.png"
+            )
+            if (f.parent.name not in ["uvmaps", "base"])
+        ]
+
     if len(references_image_paths) == 0:
         return None
     print(f"Parcel ID: {parcel_id} ({len(references_image_paths)})")
+    print(f"gt_uvmap_path: {gt_uvmap_path}")
+    print(f"Reference images: {references_image_paths}")
     futures = []
     with tqdm.tqdm(total=len(references_image_paths)) as pbar:
         with ThreadPoolExecutor(max_workers=NUM_WORKERS) as tp_executor:
@@ -146,6 +160,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Run in parallel",
     )
+    p.add_argument(
+        "--adv_type",
+        type=str,
+        default="none",
+        help="Input adversarial type(either 'fgsm' or 'pgd' or 'none')",
+    )
     return p
 
 
@@ -155,7 +175,7 @@ def main(argv: Optional[List[str]] = None) -> pd.DataFrame:
     args = build_parser().parse_args(argv)
     mode = args.mode
     parallel = args.parallel
-    print(f"Mode: {mode}, parallel: {parallel}")
+    print(f"Mode: {mode}, parallel: {parallel}, adv_type: {args.adv_type}")
     if mode == "all":
         folder_names = ["validation", "test"]
     else:
@@ -170,9 +190,17 @@ def main(argv: Optional[List[str]] = None) -> pd.DataFrame:
         output_path = OUT_IMAGES / input_folder.name
         output_path.mkdir(exist_ok=True, parents=True)
         for parcel_id in range(30):
-            parcel_results = compute_parcel_similitary_scores(
-                parcel_id, input_folder, parallel=parallel
-            )
+            if args.adv_type != "none":
+                parcel_results = compute_parcel_similitary_scores(
+                    parcel_id, input_folder, parallel=parallel
+                )
+            else:
+                parcel_results = compute_parcel_similitary_scores(
+                    parcel_id,
+                    input_folder,
+                    parallel=parallel,
+                    adversarial_type=args.adv_type,
+                )
             if parcel_results is not None:
                 results.extend(parcel_results)
 

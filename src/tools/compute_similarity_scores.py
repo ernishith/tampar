@@ -190,7 +190,7 @@ def main(argv: Optional[List[str]] = None) -> pd.DataFrame:
         output_path = OUT_IMAGES / input_folder.name
         output_path.mkdir(exist_ok=True, parents=True)
         for parcel_id in range(30):
-            if args.adv_type != "none":
+            if args.adv_type == "none":
                 parcel_results = compute_parcel_similitary_scores(
                     parcel_id, input_folder, parallel=parallel
                 )

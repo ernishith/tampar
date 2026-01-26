@@ -95,14 +95,15 @@ def save_uvmap(image_path: Path, output_path: Path, keypoints=None, predictor=No
         print(f"Failed to load: {image_path}")
         return None
 
-    img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-
     if keypoints is None and predictor is not None:
-        outputs = predictor(img_rgb)
+        outputs = predictor(img_bgr)  # <-- BGR
         if len(outputs["instances"].pred_keypoints) == 0:
             return None
         keypoints = outputs["instances"].pred_keypoints[0, :, :2].cpu().numpy()
 
+    img_rgb = cv2.cvtColor(
+        img_bgr, cv2.COLOR_BGR2RGB
+    )  # <-- for your own downstream use
     view = ParcelView(image_path, np.array(keypoints))
     if view.uv_map is not None:
         output_path.parent.mkdir(exist_ok=True, parents=True)

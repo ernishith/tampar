@@ -244,7 +244,7 @@ if __name__ == "__main__":
             for img in coco_merged["images"]
             if (image_root / Path(img["file_name"])).exists()
         ]
-        print(f"📸 Processing {len(image_paths)} images...")
+        print(f"Processing {len(image_paths)} images...")
         create_pred_uvmaps(predictor, image_paths)
 
     # Summary

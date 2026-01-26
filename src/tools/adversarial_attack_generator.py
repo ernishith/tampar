@@ -56,13 +56,13 @@ def clean_adversarial_directory(attack_dir: Path):
         attack_dir: Directory to clean
     """
     if attack_dir.exists():
-        print(f"\n⚠️  Adversarial directory already exists: {attack_dir}")
+        print(f"\n Adversarial directory already exists: {attack_dir}")
         print(f"Deleting existing directory...")
         shutil.rmtree(attack_dir)
-        print(f"✓ Deleted successfully")
+        print(f" Deleted successfully")
 
     attack_dir.mkdir(parents=True, exist_ok=True)
-    print(f"✓ Created fresh adversarial directory: {attack_dir}")
+    print(f" Created fresh adversarial directory: {attack_dir}")
 
 
 def image_to_tensor(image_bgr: np.ndarray) -> torch.Tensor:
@@ -544,5 +544,5 @@ if __name__ == "__main__":
     )
 
     print(
-        "\n✓ Done! Run create_adversarial_annotations.py to generate COCO annotations."
+        "\n Done! Run create_adversarial_annotations.py to generate COCO annotations."
     )

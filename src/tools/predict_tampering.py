@@ -3,6 +3,8 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
+from imblearn.over_sampling import SMOTE
+
 ROOT = Path(__file__).parent.parent.parent
 sys.path.append(ROOT.as_posix())
 
@@ -70,6 +72,7 @@ def train_predictor(
     gt_keypoints: bool = False,
     predictor_type: str = "simple_threshold",
     mode: str = "validation",
+    balance_dataset: bool = False,
 ) -> pd.DataFrame:
     SCORES = [n for n in df_final.columns if n.startswith("score")]
     data_train, data_test = get_data_splits(df_final, gt_keypoints=gt_keypoints)
@@ -85,6 +88,9 @@ def train_predictor(
         predictor = TamperingClassificator(predictor_type)
         X_train = data_train[scores].to_numpy().astype(float)
         y_train = data_train["tampered"].to_numpy().astype(int)
+        if balance_dataset:
+            smote = SMOTE(random_state=42)
+            X_train, y_train = smote.fit_resample(X_train, y_train)
         ids_train = data_train["id"].to_numpy()
         predictor.set_data(X_train, y_train, ids_train)
         predictor.feature_names = [s.replace("score_", "") for s in scores]
@@ -200,6 +206,11 @@ def build_parser() -> argparse.ArgumentParser:
         default="simple_threshold",
         help="Input predictor type(either 'rf' or default is 'simple_threshold')",
     )
+    p.add_argument(
+        "--balance_dataset",
+        action="store_true",  # default is false
+        help="enable using smote for balancing dataset",
+    )
     return p
 
 
@@ -210,7 +221,10 @@ def main(argv: Optional[List[str]] = None):
     mode = args.mode
     predictor = args.predictor
     gt_keypoints = args.gt_keypoints
-    print(f"Mode: {mode}, gt_keypoints: {gt_keypoints}, predictor: {predictor}")
+    balance_dataset = args.balance_dataset
+    print(
+        f"Mode: {mode}, gt_keypoints: {gt_keypoints}, predictor: {predictor}, balance_dataset: {balance_dataset}"
+    )
     if mode == "validation" or mode == "train" or mode == "test":
         if mode == "train":
             file_type = "validation"
@@ -229,6 +243,7 @@ def main(argv: Optional[List[str]] = None):
             gt_keypoints=gt_keypoints,
             predictor_type=predictor,
             mode=mode,
+            balance_dataset=balance_dataset,
         )
         df_results.to_csv("tampering_results.csv")
     if mode == "train":
@@ -238,6 +253,7 @@ def main(argv: Optional[List[str]] = None):
             gt_keypoints=gt_keypoints,
             predictor_type=predictor,
             mode=mode,
+            balance_dataset=balance_dataset,
         )
         df_results.to_csv("tampering_results_train.csv")
     if mode == "test":

@@ -417,13 +417,19 @@ def generate_adversarial_images(
         # Save with suffix maintaining directory structure
         relative_path = image_path.relative_to(image_root)
         output_path = (
-            output_dir / relative_path.parent / f"{image_path.stem}_{attack_type}.jpg"
+            output_dir
+            / f"{relative_path.parent}_adv"
+            / f"{image_path.stem}_{attack_type}.jpg"
         )
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Store mapping for annotations (relative path from image_root)
         rename_dict[relative_path.as_posix()] = (
-            (output_dir / relative_path.parent / f"{image_path.stem}_{attack_type}.jpg")
+            (
+                output_dir
+                / f"{relative_path.parent}_adv"
+                / f"{image_path.stem}_{attack_type}.jpg"
+            )
             .relative_to(image_root)
             .as_posix()
         )

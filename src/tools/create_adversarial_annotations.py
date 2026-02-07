@@ -49,17 +49,17 @@ def clean_adversarial_annotations(image_root: Path):
 
     if adversarial_jsons:
         print(
-            f"\n⚠️  Found {len(adversarial_jsons)} existing adversarial annotation file(s):"
+            f"\nFound {len(adversarial_jsons)} existing adversarial annotation file(s):"
         )
         for json_file in adversarial_jsons:
-            print(f"  - {json_file.name}")
+            print(f"- {json_file.name}")
 
         print(f"\nDeleting existing adversarial annotations...")
         for json_file in adversarial_jsons:
             json_file.unlink()
-            print(f"  ✓ Deleted: {json_file.name}")
+            print(f"Deleted: {json_file.name}")
     else:
-        print("\n✓ No existing adversarial annotations found")
+        print("\nNo existing adversarial annotations found")
 
 
 def get_max_ids(coco_dict: dict) -> tuple:
@@ -127,10 +127,10 @@ def create_adversarial_annotations(
     max_image_id, max_annotation_id = get_max_ids(original_coco)
 
     print(f"\nOriginal dataset statistics:")
-    print(f"  Images: {len(original_coco['images'])}")
-    print(f"  Annotations: {len(original_coco['annotations'])}")
-    print(f"  Max image ID: {max_image_id}")
-    print(f"  Max annotation ID: {max_annotation_id}")
+    print(f"Images: {len(original_coco['images'])}")
+    print(f"Annotations: {len(original_coco['annotations'])}")
+    print(f"Max image ID: {max_image_id}")
+    print(f"Max annotation ID: {max_annotation_id}")
 
     # Create adversarial dataset
     adversarial_coco = copy.deepcopy(original_coco)
@@ -161,8 +161,8 @@ def create_adversarial_annotations(
     missing_count = 0
 
     print(f"\nProcessing adversarial images...")
-    print(f"  Starting image ID: {next_image_id}")
-    print(f"  Starting annotation ID: {next_annotation_id}")
+    print(f"Starting image ID: {next_image_id}")
+    print(f"Starting annotation ID: {next_annotation_id}")
 
     # Process each original image
     for image_info in tqdm.tqdm(
@@ -219,12 +219,12 @@ def create_adversarial_annotations(
     print("\n" + "=" * 80)
     print("Adversarial Dataset Summary")
     print("=" * 80)
-    print(f"  FGSM images:           {fgsm_count:>5}")
-    print(f"  PGD images:            {pgd_count:>5}")
-    print(f"  {'-' * 30}")
-    print(f"  Total images:          {len(all_images):>5}")
-    print(f"  Total annotations:     {len(all_annotations):>5}")
-    print(f"  Missing/Skipped:       {missing_count:>5}")
+    print(f"FGSM images:           {fgsm_count:>5}")
+    print(f"PGD images:            {pgd_count:>5}")
+    print(f"{'-' * 30}")
+    print(f"Total images:          {len(all_images):>5}")
+    print(f"Total annotations:     {len(all_annotations):>5}")
+    print(f"Missing/Skipped:       {missing_count:>5}")
 
     # Verify uniqueness
     image_ids = [img["id"] for img in all_images]
@@ -233,19 +233,19 @@ def create_adversarial_annotations(
     unique_image_ids = len(set(image_ids))
     unique_annotation_ids = len(set(annotation_ids))
 
-    print(f"\n  Unique image IDs:      {unique_image_ids:>5}")
-    print(f"  Unique annotation IDs: {unique_annotation_ids:>5}")
+    print(f"\nUnique image IDs:      {unique_image_ids:>5}")
+    print(f"Unique annotation IDs: {unique_annotation_ids:>5}")
 
     if len(image_ids) == unique_image_ids:
-        print("  ✓ All image IDs are unique")
+        print("All image IDs are unique")
     else:
-        print(f"  ⚠️  WARNING: {len(image_ids) - unique_image_ids} duplicate image IDs!")
+        print(f"WARNING: {len(image_ids) - unique_image_ids} duplicate image IDs!")
 
     if len(annotation_ids) == unique_annotation_ids:
-        print("  ✓ All annotation IDs are unique")
+        print("All annotation IDs are unique")
     else:
         print(
-            f"  ⚠️  WARNING: {len(annotation_ids) - unique_annotation_ids} duplicate annotation IDs!"
+            f"WARNING: {len(annotation_ids) - unique_annotation_ids} duplicate annotation IDs!"
         )
 
     return adversarial_coco
@@ -264,7 +264,7 @@ def save_coco_annotations(coco_dict: dict, output_path: Path):
     with open(output_path, "w") as f:
         json.dump(coco_dict, f, indent=2)
 
-    print(f"\n✓ Saved to: {output_path}")
+    print(f"\nSaved to: {output_path}")
 
 
 def validate_annotations(coco_dict: dict, image_root: Path):
@@ -285,27 +285,27 @@ def validate_annotations(coco_dict: dict, image_root: Path):
             missing_images.append(image_path)
 
     if missing_images:
-        print(f"  ⚠️  WARNING: {len(missing_images)} images not found")
+        print(f"WARNING: {len(missing_images)} images not found")
         for img_path in missing_images[:3]:
-            print(f"      - {img_path}")
+            print(f"- {img_path}")
         if len(missing_images) > 3:
-            print(f"      ... and {len(missing_images) - 3} more")
+            print(f" ... and {len(missing_images) - 3} more")
     else:
-        print(f"  ✓ All {len(coco_dict['images'])} images found")
+        print(f"All {len(coco_dict['images'])} images found")
 
     # Check for duplicate IDs
     image_ids = [img["id"] for img in coco_dict["images"]]
     annotation_ids = [ann["id"] for ann in coco_dict["annotations"]]
 
     if len(image_ids) == len(set(image_ids)):
-        print(f"  ✓ All image IDs unique")
+        print(f"All image IDs unique")
     else:
-        print(f"  ⚠️  WARNING: Duplicate image IDs found!")
+        print(f"WARNING: Duplicate image IDs found!")
 
     if len(annotation_ids) == len(set(annotation_ids)):
-        print(f"  ✓ All annotation IDs unique")
+        print(f"All annotation IDs unique")
     else:
-        print(f"  ⚠️  WARNING: Duplicate annotation IDs found!")
+        print(f"WARNING: Duplicate annotation IDs found!")
 
 
 # ============================================================================
@@ -325,9 +325,9 @@ def main():
 
     # Check if adversarial rename map exists
     if not ADVERSARIAL_RENAME_MAP.exists():
-        print(f"\n❌ ERROR: Adversarial rename map not found:")
-        print(f"   {ADVERSARIAL_RENAME_MAP}")
-        print(f"\n   Please run adversarial_attack_generator.py first!")
+        print(f"\nERROR: Adversarial rename map not found:")
+        print(f"{ADVERSARIAL_RENAME_MAP}")
+        print(f"\nPlease run adversarial_attack_generator.py first!")
         return
 
     # Load adversarial rename map
@@ -335,7 +335,7 @@ def main():
     with open(ADVERSARIAL_RENAME_MAP, "r") as f:
         adversarial_rename_map = json.load(f)
 
-    print(f"  Loaded {len(adversarial_rename_map)} image mappings")
+    print(f"Loaded {len(adversarial_rename_map)} image mappings")
 
     # Find all original annotation files
     annotation_files = [
@@ -343,7 +343,7 @@ def main():
     ]
 
     if len(annotation_files) == 0:
-        print(f"\n❌ ERROR: No annotation files found matching pattern: tampar*.json")
+        print(f"\nERROR: No annotation files found matching pattern: tampar*.json")
         return
 
     print(f"\nFound {len(annotation_files)} annotation file(s):")
@@ -380,13 +380,13 @@ def main():
 
     # Final summary
     print("\n" + "=" * 80)
-    print("✓ Annotation Generation Complete!")
+    print("Annotation Generation Complete!")
     print("=" * 80)
 
     print(f"\nGenerated Files:")
     for annotation_file in annotation_files:
         output_filename = annotation_file.name.replace("tampar", "tampar_adversarial")
-        print(f"  - {output_filename}")
+        print(f"- {output_filename}")
 
     print("\n" + "=" * 80)
 

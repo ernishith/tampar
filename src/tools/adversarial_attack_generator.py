@@ -56,13 +56,13 @@ def clean_adversarial_directory(attack_dir: Path):
         attack_dir: Directory to clean
     """
     if attack_dir.exists():
-        print(f"\n Adversarial directory already exists: {attack_dir}")
+        print(f"\nAdversarial directory already exists: {attack_dir}")
         print(f"Deleting existing directory...")
         shutil.rmtree(attack_dir)
-        print(f" Deleted successfully")
+        print(f"Deleted successfully")
 
     attack_dir.mkdir(parents=True, exist_ok=True)
-    print(f" Created fresh adversarial directory: {attack_dir}")
+    print(f"Created fresh adversarial directory: {attack_dir}")
 
 
 def image_to_tensor(image_bgr: np.ndarray) -> torch.Tensor:
@@ -369,9 +369,9 @@ def generate_adversarial_images(
         print(f"Target pattern: {target_pattern}")
 
     print(f"\nAttack strategy:")
-    print(f"  - Odd-indexed images (1st, 3rd, 5th, ...) -> FGSM")
-    print(f"  - Even-indexed images (2nd, 4th, 6th, ...) -> PGD")
-    print(f"  - Total images to attack: {len(image_paths)}")
+    print(f"Odd-indexed images (1st, 3rd, 5th, ...) -> FGSM")
+    print(f"Even-indexed images (2nd, 4th, 6th, ...) -> PGD")
+    print(f"Total images to attack: {len(image_paths)}")
 
     # Select attack functions based on mode
     if use_gradient_based:
@@ -438,12 +438,12 @@ def generate_adversarial_images(
 
     print(f"\n{'='*80}")
     print(f"Attack Summary:")
-    print(f"  Attack mode:               {attack_mode}")
-    print(f"  Total images processed:    {len(image_paths)}")
-    print(f"  FGSM attacked images:      {fgsm_count}")
-    print(f"  PGD attacked images:       {pgd_count}")
-    print(f"  Total adversarial images:  {fgsm_count + pgd_count}")
-    print(f"  Adversarial images saved to: {output_dir}")
+    print(f"Attack mode:               {attack_mode}")
+    print(f"Total images processed:    {len(image_paths)}")
+    print(f"FGSM attacked images:      {fgsm_count}")
+    print(f"PGD attacked images:       {pgd_count}")
+    print(f"Total adversarial images:  {fgsm_count + pgd_count}")
+    print(f"Adversarial images saved to: {output_dir}")
     print(f"{'='*80}")
 
     print("\nWriting rename Json file...")
@@ -452,7 +452,7 @@ def generate_adversarial_images(
 
     with open(rename_map_path, "w") as f:
         json.dump(rename_dict, f, indent=2)
-    print(f"✓ Rename map saved to: {rename_map_path}")
+    print(f"Rename map saved to: {rename_map_path}")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -524,10 +524,10 @@ if __name__ == "__main__":
     print(f"Image Root: {IMAGE_ROOT}")
     print(f"Output Directory: {ATTACK_DIR}")
     print(f"\nAttack Parameters:")
-    print(f"  FGSM Epsilon: {EPSILON_FGSM:.4f} ({EPSILON_FGSM * 255:.1f}/255)")
-    print(f"  PGD Epsilon:  {EPSILON_PGD:.4f} ({EPSILON_PGD * 255:.1f}/255)")
-    print(f"  PGD Alpha:    {ALPHA_PGD:.4f} ({ALPHA_PGD * 255:.1f}/255)")
-    print(f"  PGD Iterations: {PGD_ITERATIONS}")
+    print(f"FGSM Epsilon: {EPSILON_FGSM:.4f} ({EPSILON_FGSM * 255:.1f}/255)")
+    print(f"PGD Epsilon:  {EPSILON_PGD:.4f} ({EPSILON_PGD * 255:.1f}/255)")
+    print(f"PGD Alpha:    {ALPHA_PGD:.4f} ({ALPHA_PGD * 255:.1f}/255)")
+    print(f"PGD Iterations: {PGD_ITERATIONS}")
     print("=" * 80)
     # Clean adversarial directory if exists
     clean_adversarial_directory(ATTACK_DIR)
@@ -549,6 +549,4 @@ if __name__ == "__main__":
         target_pattern=TARGET_PATTERN,
     )
 
-    print(
-        "\n Done! Run create_adversarial_annotations.py to generate COCO annotations."
-    )
+    print("\nDone! Run create_adversarial_annotations.py to generate COCO annotations.")

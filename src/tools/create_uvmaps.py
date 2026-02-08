@@ -246,6 +246,7 @@ if __name__ == "__main__":
             if (image_root / Path(img["file_name"])).exists()
         ]
         print(f"Processing {len(image_paths)} images...")
+        print(f"Example image: {image_paths[:5]}")
         create_pred_uvmaps(predictor, image_paths)
 
     # Summary

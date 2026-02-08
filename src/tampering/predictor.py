@@ -167,6 +167,9 @@ class TamperingClassificator:
     # it takes in the feature matrix X and target vector y as inputs
     # it returns the best estimator found by the grid search
     def xgb_grid_search(self, X, y):
+        if (len(set(y)) < 2) or (len(y) < 5):
+            print("Skipping XGBoost: only one class present")
+            return None
         param_grid = {
             "n_estimators": [200, 300],
             "max_depth": [3, 6],
@@ -189,6 +192,9 @@ class TamperingClassificator:
     def ensemble_model(self, X, y):
         rf_model = self.rf_grid_search(X, y)
         xg_model = self.xgb_grid_search(X, y)
+
+        if xg_model is None:
+            return rf_model
 
         model = VotingClassifier(
             estimators=[("rf", rf_model), ("xgb", xg_model)],

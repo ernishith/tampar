@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from glob import glob
 
 ROOT = Path(__file__).parent.parent.parent
 sys.path.append(ROOT.as_posix())
@@ -142,7 +143,12 @@ def train_predictor(
 
 
 def main():
-    df = load_results(ROOT / "data" / "misc" / "simscores_validation.csv")
+    # df = load_results(ROOT / "data" / "misc" / "simscores_validation.csv")
+    validation_dir = ROOT / "data" / "misc"
+    csv_files = validation_dir.glob("*.csv")
+
+    df_list = [load_results(csv_file) for csv_file in csv_files]
+    df = pd.concat(df_list, ignore_index=True)
     df_final = create_pivot(df)
     model_name = "ensemble"
     df_results = train_predictor(

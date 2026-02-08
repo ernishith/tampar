@@ -98,12 +98,8 @@ def save_uvmap(image_path: Path, output_path: Path, keypoints=None, predictor=No
     if keypoints is None and predictor is not None:
         outputs = predictor(img_bgr)  # <-- BGR
         if len(outputs["instances"].pred_keypoints) == 0:
-            print(f"No keypoints detected for: {image_path}")
             return None
         keypoints = outputs["instances"].pred_keypoints[0, :, :2].cpu().numpy()
-        print(f"Predicted keypoints for {image_path}: {keypoints}")
-    else:
-        print("Either keypoints or predictor are none")
 
     img_rgb = cv2.cvtColor(
         img_bgr, cv2.COLOR_BGR2RGB

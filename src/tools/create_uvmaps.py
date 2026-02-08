@@ -4,9 +4,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import List, Optional
-
-import pandas as pd
+from typing import List
 
 ROOT = Path(__file__).parent.parent.parent
 sys.path.append(ROOT.as_posix())
@@ -95,31 +93,26 @@ def save_uvmap(image_path: Path, output_path: Path, keypoints=None, predictor=No
         print(f"Failed to load: {image_path}")
         return None
 
+    img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+
     if keypoints is None and predictor is not None:
-        outputs = predictor(img_bgr)  # <-- BGR
+        outputs = predictor(img_rgb)
         if len(outputs["instances"].pred_keypoints) == 0:
             return None
         keypoints = outputs["instances"].pred_keypoints[0, :, :2].cpu().numpy()
 
-    img_rgb = cv2.cvtColor(
-        img_bgr, cv2.COLOR_BGR2RGB
-    )  # <-- for your own downstream use
     view = ParcelView(image_path, np.array(keypoints))
     if view.uv_map is not None:
         output_path.parent.mkdir(exist_ok=True, parents=True)
-        print(f"Saving UV map: {output_path}")
         cv2.imwrite(
             output_path.as_posix(), cv2.cvtColor(view.uv_map, cv2.COLOR_RGB2BGR)
         )
-    else:
-        print(f"UV map generation failed for: {image_path}")
     return view
 
 
 def create_pred_uvmaps(predictor: DefaultPredictor, image_paths: List[Path]):
     for img_path in tqdm.tqdm(image_paths):
         new_path = img_path.parent / f"{img_path.stem}_uvmap_pred.png"
-        print(f"Processing {img_path} -> {new_path}")
         save_uvmap(img_path, new_path, predictor=predictor)
 
 
@@ -250,7 +243,6 @@ if __name__ == "__main__":
             if (image_root / Path(img["file_name"])).exists()
         ]
         print(f"Processing {len(image_paths)} images...")
-        print(f"Example image: {image_paths[:5]}")
         create_pred_uvmaps(predictor, image_paths)
 
     # Summary

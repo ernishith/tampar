@@ -107,6 +107,8 @@ def save_uvmap(image_path: Path, output_path: Path, keypoints=None, predictor=No
         cv2.imwrite(
             output_path.as_posix(), cv2.cvtColor(view.uv_map, cv2.COLOR_RGB2BGR)
         )
+    else:
+        print(f"UV map generation failed for: {image_path}")
     return view
 
 

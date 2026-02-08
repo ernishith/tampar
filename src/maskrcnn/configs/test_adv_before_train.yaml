@@ -10,8 +10,8 @@ MODEL:
   FPN:
     IN_FEATURES: ["res2", "res3", "res4", "res5"]
 DATASETS:
-  TRAIN: ("tampar_validation_nishith",)
-  TEST: ("tampar_adversarial_test_nishith",)
+  TRAIN: ("tampar_adversarial_validation",)
+  TEST: ("tampar_adversarial_test",)
 SOLVER:
   IMS_PER_BATCH: 1
   BASE_LR: 0.01

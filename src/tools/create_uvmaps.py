@@ -100,6 +100,8 @@ def save_uvmap(image_path: Path, output_path: Path, keypoints=None, predictor=No
         if len(outputs["instances"].pred_keypoints) == 0:
             return None
         keypoints = outputs["instances"].pred_keypoints[0, :, :2].cpu().numpy()
+    else:
+        print("Either keypoints or predictor are none")
 
     img_rgb = cv2.cvtColor(
         img_bgr, cv2.COLOR_BGR2RGB
@@ -107,6 +109,7 @@ def save_uvmap(image_path: Path, output_path: Path, keypoints=None, predictor=No
     view = ParcelView(image_path, np.array(keypoints))
     if view.uv_map is not None:
         output_path.parent.mkdir(exist_ok=True, parents=True)
+        print(f"Saving UV map: {output_path}")
         cv2.imwrite(
             output_path.as_posix(), cv2.cvtColor(view.uv_map, cv2.COLOR_RGB2BGR)
         )
@@ -116,6 +119,7 @@ def save_uvmap(image_path: Path, output_path: Path, keypoints=None, predictor=No
 def create_pred_uvmaps(predictor: DefaultPredictor, image_paths: List[Path]):
     for img_path in tqdm.tqdm(image_paths):
         new_path = img_path.parent / f"{img_path.stem}_uvmap_pred.png"
+        print(f"Processing {img_path} -> {new_path}")
         save_uvmap(img_path, new_path, predictor=predictor)
 
 

@@ -101,6 +101,7 @@ def save_uvmap(image_path: Path, output_path: Path, keypoints=None, predictor=No
             return None
         keypoints = outputs["instances"].pred_keypoints[0, :, :2].cpu().numpy()
 
+    print(f"Processing: {image_path} with keypoints: {keypoints}")
     view = ParcelView(image_path, np.array(keypoints))
     if view.uv_map is not None:
         output_path.parent.mkdir(exist_ok=True, parents=True)
@@ -235,6 +236,8 @@ if __name__ == "__main__":
             str(ROOT / "src" / "maskrcnn" / "configs" / "Base-RCNN-FPN.yaml")
         )
         cfg.MODEL.WEIGHTS = args.weights
+        print("Configuration:")
+        print(cfg)
 
         print(f"Loading model: {args.weights}")
         predictor = DefaultPredictor(cfg)

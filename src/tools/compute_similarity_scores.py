@@ -125,28 +125,6 @@ def compute_parcel_similitary_scores(
     return parcel_results
 
 
-"""
-def main(parallel=False) -> pd.DataFrame:
-    results = []
-    for folder_name in ["validation"]:  # , "test"]:
-        input_folder = IMAGE_ROOT / folder_name
-        output_path = OUT_IMAGES / input_folder.name
-        output_path.mkdir(exist_ok=True, parents=True)
-        for parcel_id in range(30):
-            parcel_results = compute_parcel_similitary_scores(
-                parcel_id, input_folder, parallel=parallel
-            )
-            if parcel_results is not None:
-                results.extend(parcel_results)
-
-        df = pd.DataFrame(results)
-        df.to_csv(OUT_IMAGES / f"simscores_{folder_name}.csv")
-    df = pd.DataFrame(results)
-    df.to_csv(OUT_IMAGES / "simscores_final.csv")
-    return df
-"""
-
-
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser()
     p.add_argument(

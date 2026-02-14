@@ -1,9 +1,7 @@
-import argparse
 import concurrent.futures
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import List, Optional
 
 ROOT = Path(__file__).parent.parent.parent
 sys.path.append(ROOT.as_posix())
@@ -19,7 +17,7 @@ from src.tampering.compare import CompareType, compute_uvmap_similarity
 IMAGE_ROOT = ROOT / "data" / "tampar_sample"
 UVMAP_DIR = IMAGE_ROOT / "uvmaps"
 OUT_IMAGES = ROOT / "out_imgs"
-NUM_WORKERS = 1
+NUM_WORKERS = 4  # Use 4 parallel workers for faster processing
 
 
 def load_tampering_mapping():
@@ -35,7 +33,10 @@ TAMPERING_MAPPING = load_tampering_mapping()
 
 
 def compute_sidesurface_similarity_scores(
-    ref_image_path: Path, gt_uvmap: np.ndarray, parcel_id: int
+    ref_image_path: Path,
+    gt_uvmap: np.ndarray,
+    parcel_id: int,
+    simsac_ckpt_path: str = None,
 ):
     rel_path = ref_image_path.relative_to(IMAGE_ROOT)
     reference_image = cv2.imread(ref_image_path.as_posix())
@@ -49,6 +50,7 @@ def compute_sidesurface_similarity_scores(
             output_path=None,  # only if visualize False
             compare_type=compare_type,
             visualize=False,
+            simsac_ckpt_path=simsac_ckpt_path,
         )
         for sideface_name, scores in similarities.items():
             results.append(
@@ -69,7 +71,12 @@ def compute_sidesurface_similarity_scores(
 
 
 def compute_parcel_similitary_scores(
-    parcel_id: int, image_path: Path, parallel=True, adversarial_type="none"
+    parcel_id: int,
+    image_path: Path,
+    parallel=True,
+    simsac_ckpt_path: str = None,
+    num_workers: int = None,
+    adversarial_type="none",
 ):
     parcel_results = []
     gt_uvmap_path = UVMAP_DIR / f"id_{str(parcel_id).zfill(2)}_uvmap.png"
@@ -98,8 +105,9 @@ def compute_parcel_similitary_scores(
     print(f"gt_uvmap_path: {gt_uvmap_path}")
     print(f"Reference images: {references_image_paths}")
     futures = []
+    workers = num_workers if num_workers is not None else NUM_WORKERS
     with tqdm.tqdm(total=len(references_image_paths)) as pbar:
-        with ThreadPoolExecutor(max_workers=NUM_WORKERS) as tp_executor:
+        with ThreadPoolExecutor(max_workers=workers) as tp_executor:
             for ref_image_path in references_image_paths:
                 if parallel:
                     future = tp_executor.submit(
@@ -107,11 +115,12 @@ def compute_parcel_similitary_scores(
                         ref_image_path,
                         gt_uvmap,
                         parcel_id,
+                        simsac_ckpt_path,
                     )
                     futures.append(future)
                 else:
                     results = compute_sidesurface_similarity_scores(
-                        ref_image_path, gt_uvmap, parcel_id
+                        ref_image_path, gt_uvmap, parcel_id, simsac_ckpt_path
                     )
                     parcel_results.extend(results)
                     pbar.update(1)
@@ -126,17 +135,30 @@ def compute_parcel_similitary_scores(
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser()
+    p = argparse.ArgumentParser(description="Compute similarity scores using SimSAC")
     p.add_argument(
         "--mode",
         type=str,
         default="validation",
         help="Input run type(either 'validation' or 'test' or 'all')",
     )
-    p.add_argument(
+    parser.add_argument(
+        "--checkpoint",
+        type=str,
+        default=None,
+        help="Path to SimSAC checkpoint file (e.g., phase2_best.pth). If not provided, uses default synthetic.pth",
+    )
+    parser.add_argument(
         "--parallel",
         action="store_true",
-        help="Run in parallel",
+        default=False,
+        help="Enable parallel processing",
+    )
+    parser.add_argument(
+        "--num_workers",
+        type=int,
+        default=4,
+        help="Number of parallel workers (default: 4). More workers = faster but more memory",
     )
     p.add_argument(
         "--adv_type",
@@ -152,6 +174,12 @@ def main(argv: Optional[List[str]] = None) -> pd.DataFrame:
         argv = sys.argv[1:]  # common pattern for CLI entry points
     args = build_parser().parse_args(argv)
     mode = args.mode
+    simsac_ckpt_path = args.checkpoint
+    if simsac_ckpt_path:
+        print(f"Using custom SimSAC checkpoint: {simsac_ckpt_path}")
+    else:
+        print("Using default SimSAC checkpoint: synthetic.pth")
+
     parallel = args.parallel
     print(f"Mode: {mode}, parallel: {parallel}, adv_type: {args.adv_type}")
     if mode == "all":
@@ -170,13 +198,19 @@ def main(argv: Optional[List[str]] = None) -> pd.DataFrame:
         for parcel_id in range(30):
             if args.adv_type == "none":
                 parcel_results = compute_parcel_similitary_scores(
-                    parcel_id, input_folder, parallel=parallel
+                    parcel_id,
+                    input_folder,
+                    parallel=parallel,
+                    simsac_ckpt_path=simsac_ckpt_path,
+                    num_workers=num_workers,
                 )
             else:
                 parcel_results = compute_parcel_similitary_scores(
                     parcel_id,
                     input_folder,
                     parallel=parallel,
+                    simsac_ckpt_path=simsac_ckpt_path,
+                    num_workers=num_workers,
                     adversarial_type=args.adv_type,
                 )
             if parcel_results is not None:

@@ -78,6 +78,7 @@ def compute_parcel_similitary_scores(
     parallel=True,
     simsac_ckpt_path: str = None,
     num_workers: int = None,
+    exclude_base: bool = True,
     adversarial_type="none",
 ):
     parcel_results = []
@@ -86,22 +87,32 @@ def compute_parcel_similitary_scores(
         return None
     gt_uvmap = cv2.imread(gt_uvmap_path.as_posix())
     gt_uvmap = cv2.cvtColor(gt_uvmap, cv2.COLOR_BGR2RGB)
-    if adversarial_type == "none":
-        references_image_paths = [
-            f
-            for f in image_path.rglob(f"id_{str(parcel_id).zfill(2)}_*_uvmap_*.png")
-            if (f.parent.name not in ["uvmaps", "base"])
-        ]
-    else:
-        references_image_paths = [
-            f
-            for f in image_path.rglob(
-                f"id_{str(parcel_id).zfill(2)}_*_{adversarial_type}_uvmap_*.png"
-            )
-            if (f.parent.name not in ["uvmaps", "base"])
-        ]
+
+    filename_pattern = (
+        f"id_{str(parcel_id).zfill(2)}_*_uvmap_*.png"
+        if adversarial_type == "none"
+        else f"id_{str(parcel_id).zfill(2)}_*_{adversarial_type}_uvmap_*.png"
+    )
+
+    # Build list of reference image paths
+    all_paths = image_path.rglob(filename_pattern)
+
+    references_image_paths = []
+    for f in all_paths:
+        # Always exclude uvmaps folder
+        if f.parent.name == "uvmaps":
+            continue
+
+        # Optionally exclude base folders (base, base_adv_*, etc.)
+        if exclude_base and f.parent.name.startswith("base"):
+            continue
+
+        references_image_paths.append(f)
 
     if len(references_image_paths) == 0:
+        print(
+            f"No reference images found for Parcel ID {parcel_id} with pattern {filename_pattern} in {image_path}"
+        )
         return None
     print(f"Parcel ID: {parcel_id} ({len(references_image_paths)})")
     print(f"gt_uvmap_path: {gt_uvmap_path}")
@@ -163,6 +174,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Number of parallel workers (default: 4). More workers = faster but more memory",
     )
     p.add_argument(
+        "--include_base",
+        action="store_true",
+        default=False,
+        help="Include base folders (base, base_adv_*, etc.) in processing. By default, base folders are excluded.",
+    )
+    p.add_argument(
         "--adv_type",
         type=str,
         default="none",
@@ -178,10 +195,16 @@ def main(argv: Optional[List[str]] = None) -> pd.DataFrame:
     mode = args.mode
     simsac_ckpt_path = args.checkpoint
     num_workers = args.num_workers
+    exclude_base = not args.include_base
     if simsac_ckpt_path:
         print(f"Using custom SimSAC checkpoint: {simsac_ckpt_path}")
     else:
         print("Using default SimSAC checkpoint: synthetic.pth")
+
+    if exclude_base:
+        print("Excluding base folders (base, base_adv_*, etc.)")
+    else:
+        print("Including all folders (base folders will be processed)")
 
     parallel = args.parallel
     print(f"Mode: {mode}, parallel: {parallel}, adv_type: {args.adv_type}")

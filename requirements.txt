@@ -30,3 +30,4 @@ dtreeviz==2.2.1
 wand==0.6.11
 pyiqa==0.1.6.4
 isort==5.11.5
+imblearn==0.0

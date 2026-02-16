@@ -233,19 +233,19 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",  # default is false
         help="enable using smote for balancing dataset",
     )
-    parser.add_argument(
+    p.add_argument(
         "--simscores_csv",
         type=str,
         default=None,
         help="Path to simscores CSV file. If not provided, uses data/misc/simscores_validation.csv",
     )
-    parser.add_argument(
+    p.add_argument(
         "--test-split",
         type=float,
         default=0.2,
         help="Test split ratio when not using cross-validation (default: 0.2 = 20%% test)",
     )
-    parser.add_argument(
+    p.add_argument(
         "--predictor_type",
         type=str,
         default="all",
@@ -259,13 +259,13 @@ def build_parser() -> argparse.ArgumentParser:
         ],
         help='Type of predictor to train. Use "all" to compare all classifiers (default: all)',
     )
-    parser.add_argument(
+    p.add_argument(
         "--output",
         type=str,
         default="tampering_results.csv",
         help="Output CSV file for results (default: tampering_results.csv)",
     )
-    parser.add_argument(
+    p.add_argument(
         "--exclude_base",
         action="store_true",
         default=False,

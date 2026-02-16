@@ -1,7 +1,9 @@
+import argparse
 import concurrent.futures
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import List, Optional
 
 ROOT = Path(__file__).parent.parent.parent
 sys.path.append(ROOT.as_posix())
@@ -142,19 +144,19 @@ def build_parser() -> argparse.ArgumentParser:
         default="validation",
         help="Input run type(either 'validation' or 'test' or 'all')",
     )
-    parser.add_argument(
+    p.add_argument(
         "--checkpoint",
         type=str,
         default=None,
         help="Path to SimSAC checkpoint file (e.g., phase2_best.pth). If not provided, uses default synthetic.pth",
     )
-    parser.add_argument(
+    p.add_argument(
         "--parallel",
         action="store_true",
         default=False,
         help="Enable parallel processing",
     )
-    parser.add_argument(
+    p.add_argument(
         "--num_workers",
         type=int,
         default=4,
@@ -175,6 +177,7 @@ def main(argv: Optional[List[str]] = None) -> pd.DataFrame:
     args = build_parser().parse_args(argv)
     mode = args.mode
     simsac_ckpt_path = args.checkpoint
+    num_workers = args.num_workers
     if simsac_ckpt_path:
         print(f"Using custom SimSAC checkpoint: {simsac_ckpt_path}")
     else:

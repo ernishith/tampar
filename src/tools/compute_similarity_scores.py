@@ -228,6 +228,7 @@ def main(argv: Optional[List[str]] = None) -> pd.DataFrame:
                 parallel=parallel,
                 simsac_ckpt_path=simsac_ckpt_path,
                 num_workers=num_workers,
+                exclude_base=exclude_base,
                 adversarial_type=args.adv_type,
             )
             if parcel_results is not None:

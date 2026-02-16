@@ -199,23 +199,14 @@ def main(argv: Optional[List[str]] = None) -> pd.DataFrame:
         output_path = OUT_IMAGES / input_folder.name
         output_path.mkdir(exist_ok=True, parents=True)
         for parcel_id in range(30):
-            if args.adv_type == "none":
-                parcel_results = compute_parcel_similitary_scores(
-                    parcel_id,
-                    input_folder,
-                    parallel=parallel,
-                    simsac_ckpt_path=simsac_ckpt_path,
-                    num_workers=num_workers,
-                )
-            else:
-                parcel_results = compute_parcel_similitary_scores(
-                    parcel_id,
-                    input_folder,
-                    parallel=parallel,
-                    simsac_ckpt_path=simsac_ckpt_path,
-                    num_workers=num_workers,
-                    adversarial_type=args.adv_type,
-                )
+            parcel_results = compute_parcel_similitary_scores(
+                parcel_id,
+                input_folder,
+                parallel=parallel,
+                simsac_ckpt_path=simsac_ckpt_path,
+                num_workers=num_workers,
+                adversarial_type=args.adv_type,
+            )
             if parcel_results is not None:
                 results.extend(parcel_results)
 

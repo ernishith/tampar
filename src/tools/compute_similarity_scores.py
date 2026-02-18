@@ -88,11 +88,14 @@ def compute_parcel_similitary_scores(
     gt_uvmap = cv2.imread(gt_uvmap_path.as_posix())
     gt_uvmap = cv2.cvtColor(gt_uvmap, cv2.COLOR_BGR2RGB)
 
-    filename_pattern = (
-        f"id_{str(parcel_id).zfill(2)}_*_uvmap_*.png"
-        if adversarial_type == "none" or adversarial_type == "all"
-        else f"id_{str(parcel_id).zfill(2)}_*_{adversarial_type}_uvmap_*.png"
-    )
+    if adversarial_type == "none":
+        filename_pattern = f"id_{str(parcel_id).zfill(2)}_*_uvmap_*.png"
+    elif adversarial_type == "all":
+        filename_pattern = f"id_{str(parcel_id).zfill(2)}_*_(fgsm|pgd)_uvmap_*.png"
+    else:
+        filename_pattern = (
+            f"id_{str(parcel_id).zfill(2)}_*_{adversarial_type}_uvmap_*.png"
+        )
 
     # Build list of reference image paths
     all_paths = image_path.rglob(filename_pattern)

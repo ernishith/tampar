@@ -90,7 +90,7 @@ def compute_parcel_similitary_scores(
 
     filename_pattern = (
         f"id_{str(parcel_id).zfill(2)}_*_uvmap_*.png"
-        if adversarial_type == "none"
+        if adversarial_type == "none" or adversarial_type == "all"
         else f"id_{str(parcel_id).zfill(2)}_*_{adversarial_type}_uvmap_*.png"
     )
 
@@ -183,7 +183,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--adv_type",
         type=str,
         default="none",
-        help="Input adversarial type(either 'fgsm' or 'pgd' or 'none')",
+        help="Input adversarial type(either 'fgsm' or 'pgd' or 'none' or 'all')",
     )
     return p
 

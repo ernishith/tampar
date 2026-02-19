@@ -158,7 +158,7 @@ def train_predictor(
                 predictor.test_split_size = test_split
                 model, train_metrics, test_metrics = predictor.train()
                 dump(
-                    model, f"tamparmodel_{predictor_type}_{compare_types}.joblib"
+                    model, f"tamparmodel_{predictor_type}_{'_'.join(compare_types)}.joblib"
                 )  # Save the trained model
 
                 result_dict = {
@@ -184,7 +184,7 @@ def train_predictor(
                 results_performance.append(result_dict)
         else:  # mode == "test"
             predictor.test_split_size = 0
-            model = load(f"tamparmodel_{predictor_type}_{compare_types}.joblib")
+            model = load(f"tamparmodel_{predictor_type}_{'_'.join(compare_types)}.joblib")
             X_test = data_test[scores].to_numpy().astype(float)
             y_test = data_test["tampered"].to_numpy().astype(int)
             ids_test = data_test["id"].to_numpy()

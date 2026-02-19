@@ -274,7 +274,7 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
-def main():
+def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]  # common pattern for CLI entry points
     args = build_parser().parse_args(argv)

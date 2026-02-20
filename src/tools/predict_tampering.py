@@ -91,12 +91,12 @@ def get_data_splits(df_input: pd.DataFrame, gt_keypoints: bool = False):
 
 def train_predictor(
     df_final: pd.DataFrame,
-    validate: bool = True,
     gt_keypoints: bool = False,
     predictor_type: str = "simple_threshold",
     mode: str = "validation",
     balance_dataset: bool = False,
-    test_split: float = 0.2,
+    save_model: Optional[str] = None,
+    load_model: Optional[str] = None,
 ) -> pd.DataFrame:
     SCORES = [n for n in df_final.columns if n.startswith("score")]
     data_train, data_test = get_data_splits(df_final, gt_keypoints=gt_keypoints)
@@ -125,89 +125,63 @@ def train_predictor(
         ids_train = data_train["id"].to_numpy()
         predictor.set_data(X_train, y_train, ids_train)
         predictor.feature_names = [s.replace("score_", "") for s in scores]
-        if mode == "validation" or mode == "train":
-            if validate:
-                (
-                    train_metrics_summary,
-                    val_metrics_summary,
-                    models,
-                ) = predictor.validate_model(5)
-                result_dict = {
-                    "predictor": predictor_type,
-                    "compare_types": ", ".join(compare_types),
-                    "scores": ", ".join(
-                        set(["_".join(s.split("_")[1:-1]) for s in scores])
-                    ),
-                    **val_metrics_summary,
-                }
-                # Only add feature importance for tree-based models
-                if hasattr(models[0], "feature_importances_"):
-                    result_dict["feature_importance"] = {
-                        name: value
-                        for name, value in zip(
-                            predictor.feature_names,
-                            models[0].feature_importances_,
-                        )
-                        if value > 0
-                    }
-                else:
-                    result_dict["feature_importance"] = "N/A (ensemble model)"
-                results_performance.append(result_dict)
-            else:
-                # Use train/test split
-                predictor.test_split_size = test_split
-                model, train_metrics, test_metrics = predictor.train()
-                dump(
-                    model, f"tamparmodel_{predictor_type}_{compare_types}.joblib"
-                )  # Save the trained model
 
-                result_dict = {
-                    "predictor": predictor_type,
-                    "compare_types": ", ".join(compare_types),
-                    "scores": ",".join(
-                        set(["_".join(s.split("_")[1:-1]) for s in scores])
-                    ),
-                    **train_metrics,
-                }
-                # Only add feature importance for tree-based models
-                if hasattr(model, "feature_importances_"):
-                    result_dict["feature_importance"] = {
-                        name: value
-                        for name, value in zip(
-                            predictor.feature_names,
-                            model.feature_importances_,
-                        )
-                        if value > 0
-                    }
-                else:
-                    result_dict["feature_importance"] = "N/A (ensemble model)"
-                results_performance.append(result_dict)
-        else:  # mode == "test"
-            predictor.test_split_size = 0
-            model = load(f"tamparmodel_{predictor_type}_{compare_types}.joblib")
+        if load_model:
+            # Load a pre-trained model and evaluate on test data
+            model = load(load_model)
             X_test = data_test[scores].to_numpy().astype(float)
             y_test = data_test["tampered"].to_numpy().astype(int)
-            ids_test = data_test["id"].to_numpy()
             test_metrics = evaluate(model, X_test, y_test)
             result_dict = {
                 "predictor": predictor_type,
                 "compare_types": ", ".join(compare_types),
-                "scores": ",".join(set(["_".join(s.split("_")[1:-1]) for s in scores])),
+                "scores": ", ".join(
+                    set(["_".join(s.split("_")[1:-1]) for s in scores])
+                ),
                 **test_metrics,
             }
-            # Only add feature importance for tree-based models
-            if hasattr(model, "feature_importances_"):
-                result_dict["feature_importance"] = {
-                    name: value
-                    for name, value in zip(
-                        predictor.feature_names,
-                        model.feature_importances_,
-                    )
-                    if value > 0
-                }
-            else:
-                result_dict["feature_importance"] = "N/A (ensemble model)"
-            results_performance.append(result_dict)
+        else:
+            # Default: cross-validation for both validation and test modes
+            (
+                train_metrics_summary,
+                val_metrics_summary,
+                models,
+            ) = predictor.validate_model(5)
+            result_dict = {
+                "predictor": predictor_type,
+                "compare_types": ", ".join(compare_types),
+                "scores": ", ".join(
+                    set(["_".join(s.split("_")[1:-1]) for s in scores])
+                ),
+                **val_metrics_summary,
+            }
+
+        # Add feature importance for tree-based models
+        if load_model:
+            trained_model = model
+        else:
+            trained_model = models[0]
+        if hasattr(trained_model, "feature_importances_"):
+            result_dict["feature_importance"] = {
+                name: value
+                for name, value in zip(
+                    predictor.feature_names,
+                    trained_model.feature_importances_,
+                )
+                if value > 0
+            }
+        else:
+            result_dict["feature_importance"] = "N/A (ensemble model)"
+        results_performance.append(result_dict)
+
+        # Save model if explicitly requested
+        if save_model and not load_model:
+            predictor.test_split_size = 0
+            final_model, train_metrics, _ = predictor.train()
+            compare_suffix = "_".join(compare_types)
+            model_path = f"{save_model}_{predictor_type}_{compare_suffix}.joblib"
+            dump(final_model, model_path)
+            print(f"Model saved to: {model_path}")
 
     df_results_ = pd.DataFrame(results_performance)
     return df_results_
@@ -240,10 +214,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to simscores CSV file. If not provided, uses data/misc/simscores_validation.csv",
     )
     p.add_argument(
-        "--test-split",
-        type=float,
-        default=0.2,
-        help="Test split ratio when not using cross-validation (default: 0.2 = 20%% test)",
+        "--save_model",
+        type=str,
+        default=None,
+        help="Save trained model to this path prefix (e.g., --save_model mymodel will save mymodel_rf_plain.joblib)",
+    )
+    p.add_argument(
+        "--load_model",
+        type=str,
+        default=None,
+        help="Load a pre-trained model from this path for inference instead of cross-validation",
     )
     p.add_argument(
         "--predictor_type",
@@ -279,24 +259,20 @@ def main(argv=None):
         argv = sys.argv[1:]  # common pattern for CLI entry points
     args = build_parser().parse_args(argv)
     mode = args.mode
-    predictor = args.predictor
+    predictor = args.predictor_type
     gt_keypoints = args.gt_keypoints
     balance_dataset = args.balance_dataset
-    validate = mode == "validation"
     print(
         f"Mode: {mode}, gt_keypoints: {gt_keypoints}, predictor: {predictor}, balance_dataset: {balance_dataset}"
     )
-    if mode == "validation" or mode == "train" or mode == "test":
-        if mode == "test":
-            file_type = mode
-        else:
-            file_type = "validation"
-    else:
-        raise ValueError("run_type must be either 'validation' or 'test'")
+    if mode not in ("validation", "train", "test"):
+        raise ValueError("mode must be either 'validation', 'train', or 'test'")
+
     # Determine input path
     if args.simscores_csv:
         simscores_path = Path(args.simscores_csv)
     else:
+        file_type = "test" if mode == "test" else "validation"
         simscores_path = ROOT / "data" / "misc" / f"simscores_{file_type}.csv"
 
     if not simscores_path.exists():
@@ -326,25 +302,16 @@ def main(argv=None):
         print(f"{'='*70}")
 
         try:
-            if mode == "test":
-                df_results = train_predictor(
-                    df_final,
-                    validate=validate,
-                    gt_keypoints=gt_keypoints,
-                    predictor_type=predictor,
-                    mode=mode,
-                )
-                all_results.append(df_results)
-            else:
-                df_results = train_predictor(
-                    df_final,
-                    validate=validate,
-                    gt_keypoints=gt_keypoints,
-                    predictor_type=predictor,
-                    mode=mode,
-                    balance_dataset=balance_dataset,
-                )
-                all_results.append(df_results)
+            df_results = train_predictor(
+                df_final,
+                gt_keypoints=gt_keypoints,
+                predictor_type=predictor_type,
+                mode=mode,
+                balance_dataset=balance_dataset,
+                save_model=args.save_model,
+                load_model=args.load_model,
+            )
+            all_results.append(df_results)
         except Exception as e:
             print(f"Error with {predictor_type}: {e}")
             continue

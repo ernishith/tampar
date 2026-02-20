@@ -279,7 +279,7 @@ def main(argv=None):
         argv = sys.argv[1:]  # common pattern for CLI entry points
     args = build_parser().parse_args(argv)
     mode = args.mode
-    predictor = args.predictor
+    predictor = args.predictor_type
     gt_keypoints = args.gt_keypoints
     balance_dataset = args.balance_dataset
     validate = mode == "validation"

@@ -78,7 +78,7 @@ def compute_parcel_similitary_scores(
     parallel=True,
     simsac_ckpt_path: str = None,
     num_workers: int = None,
-    exclude_base: bool = True,
+    # exclude_base: bool = True,
     adversarial_type="none",
 ):
     parcel_results = []
@@ -106,8 +106,8 @@ def compute_parcel_similitary_scores(
         if f.parent.name == "uvmaps":
             continue
 
-        # Optionally exclude base folders (base, base_adv_*, etc.)
-        if exclude_base and f.parent.name.startswith("base"):
+        # Optionally exclude base folders
+        if f.parent.name == "base":
             continue
 
         references_image_paths.append(f)
@@ -176,12 +176,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=4,
         help="Number of parallel workers (default: 4). More workers = faster but more memory",
     )
-    p.add_argument(
+    """p.add_argument(
         "--include_base",
         action="store_true",
         default=False,
         help="Include base folders (base, base_adv_*, etc.) in processing. By default, base folders are excluded.",
-    )
+    )"""
     p.add_argument(
         "--adv_type",
         type=str,
@@ -198,16 +198,16 @@ def main(argv: Optional[List[str]] = None) -> pd.DataFrame:
     mode = args.mode
     simsac_ckpt_path = args.checkpoint
     num_workers = args.num_workers
-    exclude_base = not args.include_base
+    # exclude_base = not args.include_base
     if simsac_ckpt_path:
         print(f"Using custom SimSAC checkpoint: {simsac_ckpt_path}")
     else:
         print("Using default SimSAC checkpoint: synthetic.pth")
 
-    if exclude_base:
+    """if exclude_base:
         print("Excluding base folders (base, base_adv_*, etc.)")
     else:
-        print("Including all folders (base folders will be processed)")
+        print("Including all folders (base folders will be processed)")"""
 
     parallel = args.parallel
     print(f"Mode: {mode}, parallel: {parallel}, adv_type: {args.adv_type}")
@@ -231,7 +231,7 @@ def main(argv: Optional[List[str]] = None) -> pd.DataFrame:
                 parallel=parallel,
                 simsac_ckpt_path=simsac_ckpt_path,
                 num_workers=num_workers,
-                exclude_base=exclude_base,
+                # exclude_base=exclude_base,
                 adversarial_type=args.adv_type,
             )
             if parcel_results is not None:

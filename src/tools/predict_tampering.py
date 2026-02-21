@@ -18,12 +18,12 @@ from src.tampering.predictor import TamperingClassificator
 SPLIT_STRING = "___"
 
 
-def load_results(path: Path, exclude_base: bool = False) -> pd.DataFrame:
+def load_results(path: Path, balance_dataset: bool = False) -> pd.DataFrame:
     df = pd.read_csv(path)
     df.reset_index(inplace=True)
 
     # Filter out base/base_adv folders if requested
-    if exclude_base:
+    if balance_dataset:  # Exclude base folders when balancing dataset
         before_count = len(df)
         # Check if 'view' column contains 'base' (case-insensitive)
         df = df[~df["view"].str.contains("base", case=False, na=False)]
@@ -119,7 +119,7 @@ def train_predictor(
         predictor = TamperingClassificator(predictor_type)
         X_train = data_train[scores].to_numpy().astype(float)
         y_train = data_train["tampered"].to_numpy().astype(int)
-        if balance_dataset:
+        if balance_dataset and mode != "test":
             smote = SMOTE(random_state=42)
             X_train, y_train = smote.fit_resample(X_train, y_train)
         ids_train = data_train["id"].to_numpy()
@@ -265,12 +265,12 @@ def build_parser() -> argparse.ArgumentParser:
         default="tampering_results.csv",
         help="Output CSV file for results (default: tampering_results.csv)",
     )
-    p.add_argument(
+    """p.add_argument(
         "--exclude_base",
         action="store_true",
         default=False,
         help="Exclude base and base_adv folders from analysis (default: False)",
-    )
+    )"""
     return p
 
 
@@ -304,8 +304,8 @@ def main():
         sys.exit(1)
 
     print(f"Loading SimScores from: {simscores_path}")
-    print(f"Exclude base folder: {args.exclude_base}")
-    df = load_results(simscores_path, exclude_base=args.exclude_base)
+    # print(f"Exclude base folder: {args.exclude_base}")
+    df = load_results(simscores_path, exclude_base=args.balance_dataset)
     df_final = create_pivot(df)
     # Determine which predictors to run
     if args.predictor_type == "all":
@@ -326,25 +326,15 @@ def main():
         print(f"{'='*70}")
 
         try:
-            if mode == "test":
-                df_results = train_predictor(
-                    df_final,
-                    validate=validate,
-                    gt_keypoints=gt_keypoints,
-                    predictor_type=predictor,
-                    mode=mode,
-                )
-                all_results.append(df_results)
-            else:
-                df_results = train_predictor(
-                    df_final,
-                    validate=validate,
-                    gt_keypoints=gt_keypoints,
-                    predictor_type=predictor,
-                    mode=mode,
-                    balance_dataset=balance_dataset,
-                )
-                all_results.append(df_results)
+            df_results = train_predictor(
+                df_final,
+                validate=validate,
+                gt_keypoints=gt_keypoints,
+                predictor_type=predictor,
+                mode=mode,
+                balance_dataset=balance_dataset,
+            )
+            all_results.append(df_results)
         except Exception as e:
             print(f"Error with {predictor_type}: {e}")
             continue

@@ -97,7 +97,7 @@ def train_predictor(
     predictor_type: str = "simple_threshold",
     mode: str = "validation",
     balance_dataset: bool = False,
-    test_split: float = 0.2,
+    test_split: float = 0.0,
 ) -> pd.DataFrame:
     SCORES = [n for n in df_final.columns if n.startswith("score")]
     data_train, data_test = get_data_splits(df_final, gt_keypoints=gt_keypoints)
@@ -120,7 +120,7 @@ def train_predictor(
         predictor = TamperingClassificator(predictor_type)
         X_train = data_train[scores].to_numpy().astype(float)
         y_train = data_train["tampered"].to_numpy().astype(int)
-        if balance_dataset and mode != "test":
+        if balance_dataset and mode != "train":
             smote = SMOTE(random_state=42)
             X_train, y_train = smote.fit_resample(X_train, y_train)
         ids_train = data_train["id"].to_numpy()
@@ -322,6 +322,8 @@ def main(argv=None):
             "random_forest",
             "xgboost",
             "ensemble",
+            "rf_grid",
+            "xgb_grid",
         ]
     else:
         predictor_types = [args.predictor_type]

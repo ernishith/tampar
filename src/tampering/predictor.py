@@ -216,8 +216,6 @@ class TamperingClassificator:
                 model = self.rf_grid_search(X_train, y_train)
             elif self.model_name == "xgb_grid":
                 model = self.xgb_grid_search(X_train, y_train)
-            elif self.model_name == "ensemble":
-                model = self.ensemble_model(X_train, y_train)
             else:
                 model = self.build_model()
                 model.fit(X_train, y_train)
@@ -272,31 +270,12 @@ class TamperingClassificator:
         grid.fit(X, y)
         return grid.best_estimator_
 
-    # this function creates the ensemble model using voting classifier method
-    # and then it combines a random forest model and an xgboost model
-    # and then it fits the ensemble model on the feature matrix X and target vector y
-    def ensemble_model(self, X, y):
-        rf_model = self.rf_grid_search(X, y)
-        xg_model = self.xgb_grid_search(X, y)
-
-        if xg_model is None:
-            return rf_model
-
-        model = VotingClassifier(
-            estimators=[("rf", rf_model), ("xgb", xg_model)],
-            voting="soft",
-        )
-        model.fit(X, y)
-        return model
-
     def train(self):
         X, X_test, y, y_test, _, _ = self.split_data()
         if self.model_name == "rf_grid":
             model = self.rf_grid_search(X, y)
         elif self.model_name == "xgb_grid":
             model = self.xgb_grid_search(X, y)
-        elif self.model_name == "ensemble":
-            model = self.ensemble_model(X, y)
         else:
             model = self.build_model()
             model.fit(X, y)

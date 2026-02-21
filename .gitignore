@@ -9,3 +9,4 @@ src/maskrcnn/weight/
 tampar/
 .venv*
 .vscode/settings.json
+*.joblib

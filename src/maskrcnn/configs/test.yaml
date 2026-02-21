@@ -1,6 +1,7 @@
 _BASE_: "./Base-RCNN-FPN.yaml"
 MODEL:
-  DEVICE: "cpu"
+  DEVICE: "cuda"
+  WEIGHTS: "/content/tampar/src/maskrcnn/weight/ResNet-50-FPN.pth"
   BACKBONE:
     NAME: "build_resnet_fpn_backbone"
   RESNETS:
@@ -9,10 +10,11 @@ MODEL:
   FPN:
     IN_FEATURES: ["res2", "res3", "res4", "res5"]
 DATASETS:
-  TRAIN: ("tampar_sample_validation", )
+  TRAIN: ("tampar_validation",)
+  TEST: ("tampar_test",)
 SOLVER:
   IMS_PER_BATCH: 1
   BASE_LR: 0.01
   WARMUP_ITERS: 0
   MAX_ITER: 2
-OUTPUT_DIR: "./output/test"
+OUTPUT_DIR: "./output/test_keypoints"

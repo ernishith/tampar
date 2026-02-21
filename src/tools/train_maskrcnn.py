@@ -9,6 +9,7 @@ ROOT = Path(__file__).parent.parent.parent
 sys.path.append(ROOT.as_posix())
 
 import detectron2.utils.comm as comm
+from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.config import get_cfg
 from detectron2.engine import default_argument_parser, default_setup, launch
 from detectron2.utils.logger import setup_logger
@@ -37,6 +38,11 @@ def setup(args):
 def parse_args(args):
     parser = default_argument_parser()
     parser.add_argument("--gpus", default="0", help="Set GPUs that should be used")
+    parser.add_argument(
+        "--test_only",
+        action="store_true",  # default is false
+        help="for only running in test mode",
+    )
     args = parser.parse_args(args)
     print("Command Line Args:", args)
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus
@@ -46,6 +52,15 @@ def parse_args(args):
 
 def main(args):
     cfg = setup(args)
+
+    if args.test_only:
+        model = Trainer.build_model(cfg)
+        DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
+            cfg.MODEL.WEIGHTS, resume=False
+        )
+        res = Trainer.test(cfg, model)
+        return res
+
     trainer = Trainer(cfg)
     trainer.resume_or_load(resume=False)
     trainer.train()

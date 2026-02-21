@@ -16,6 +16,7 @@ from src.tampering.evaluate import evaluate
 from src.tampering.predictor import TamperingClassificator
 
 SPLIT_STRING = "___"
+MODEL_DIR = Path("/content/tampar/")
 
 
 def load_results(path: Path, balance_dataset: bool = False) -> pd.DataFrame:
@@ -125,6 +126,9 @@ def train_predictor(
         ids_train = data_train["id"].to_numpy()
         predictor.set_data(X_train, y_train, ids_train)
         predictor.feature_names = [s.replace("score_", "") for s in scores]
+        print(
+            f"DEBUG: mode='{mode}', validate={validate}, predictor_type='{predictor_type}'"
+        )
         if mode == "validation" or mode == "train":
             if validate:
                 (
@@ -158,7 +162,8 @@ def train_predictor(
                 predictor.test_split_size = test_split
                 model, train_metrics, test_metrics = predictor.train()
                 dump(
-                    model, f"tamparmodel_{predictor_type}_{compare_types}.joblib"
+                    model,
+                    MODEL_DIR / f"tamparmodel_{predictor_type}_{compare_types}.joblib",
                 )  # Save the trained model
 
                 result_dict = {
@@ -184,7 +189,9 @@ def train_predictor(
                 results_performance.append(result_dict)
         else:  # mode == "test"
             predictor.test_split_size = 0
-            model = load(f"tamparmodel_{predictor_type}_{compare_types}.joblib")
+            model = load(
+                MODEL_DIR / f"tamparmodel_{predictor_type}_{compare_types}.joblib"
+            )
             X_test = data_test[scores].to_numpy().astype(float)
             y_test = data_test["tampered"].to_numpy().astype(int)
             ids_test = data_test["id"].to_numpy()
@@ -274,12 +281,12 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
-def main():
+def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]  # common pattern for CLI entry points
     args = build_parser().parse_args(argv)
     mode = args.mode
-    predictor = args.predictor
+    predictor = args.predictor_type
     gt_keypoints = args.gt_keypoints
     balance_dataset = args.balance_dataset
     validate = mode == "validation"
@@ -305,7 +312,7 @@ def main():
 
     print(f"Loading SimScores from: {simscores_path}")
     # print(f"Exclude base folder: {args.exclude_base}")
-    df = load_results(simscores_path, exclude_base=args.balance_dataset)
+    df = load_results(simscores_path, balance_dataset=args.balance_dataset)
     df_final = create_pivot(df)
     # Determine which predictors to run
     if args.predictor_type == "all":

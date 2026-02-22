@@ -94,8 +94,8 @@ def compute_parcel_similitary_scores(
         all_paths = image_path.rglob(filename_pattern)
     elif adversarial_type == "all":
         all_paths = chain(
-            image_path.rglob(f"id_{str(parcel_id).zfill(2)}_*_fgsm_uvmap_*.png")
-            | image_path.rglob(f"id_{str(parcel_id).zfill(2)}_*_pgd_uvmap_*.png")
+            image_path.rglob(f"id_{str(parcel_id).zfill(2)}_*_fgsm_uvmap_*.png"),
+            image_path.rglob(f"id_{str(parcel_id).zfill(2)}_*_pgd_uvmap_*.png"),
         )
     else:
         filename_pattern = (

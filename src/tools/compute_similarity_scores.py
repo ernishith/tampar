@@ -103,10 +103,6 @@ def compute_parcel_similitary_scores(
         )
         all_paths = image_path.rglob(filename_pattern)
     all_paths_list = list(all_paths)
-    print(
-        f"Found {len(list(all_paths_list))} reference images for Parcel ID {parcel_id} in {image_path}"
-    )
-    print(f"path of all reference images: {[str(p) for p in all_paths_list]}")
 
     references_image_paths = []
     for f in all_paths_list:
@@ -121,7 +117,6 @@ def compute_parcel_similitary_scores(
         references_image_paths.append(f)
 
     if len(references_image_paths) == 0:
-        print(f"No reference images found for Parcel ID {parcel_id} in {image_path}")
         return None
     print(f"Parcel ID: {parcel_id} ({len(references_image_paths)})")
     print(f"gt_uvmap_path: {gt_uvmap_path}")

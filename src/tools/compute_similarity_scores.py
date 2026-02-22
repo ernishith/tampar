@@ -102,12 +102,14 @@ def compute_parcel_similitary_scores(
             f"id_{str(parcel_id).zfill(2)}_*_{adversarial_type}_uvmap_*.png"
         )
         all_paths = image_path.rglob(filename_pattern)
+    all_paths_list = list(all_paths)
     print(
-        f"Found {len(list(all_paths))} reference images for Parcel ID {parcel_id} in {image_path}"
+        f"Found {len(list(all_paths_list))} reference images for Parcel ID {parcel_id} in {image_path}"
     )
+    print(f"path of all reference images: {[str(p) for p in all_paths_list]}")
 
     references_image_paths = []
-    for f in all_paths:
+    for f in all_paths_list:
         # Always exclude uvmaps folder
         if f.parent.name == "uvmaps":
             continue

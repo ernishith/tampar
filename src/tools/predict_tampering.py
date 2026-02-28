@@ -122,7 +122,13 @@ def train_predictor(
         y_train = data_train["tampered"].to_numpy().astype(int)
         if balance_dataset and mode == "train":
             smote = SMOTE(random_state=42)
+            print(
+                f"DEBUG: Before SMOTE - Class distribution: {pd.Series(y_train).value_counts().to_dict()}"
+            )
             X_train, y_train = smote.fit_resample(X_train, y_train)
+            print(
+                f"DEBUG: After SMOTE - Class distribution: {pd.Series(y_train).value_counts().to_dict()}"
+            )
         ids_train = data_train["id"].to_numpy()
         predictor.set_data(X_train, y_train, ids_train)
         predictor.feature_names = [s.replace("score_", "") for s in scores]

@@ -331,7 +331,10 @@ def main(argv=None):
     all_results = []
     for predictor_type in predictor_types:
         print(f"\n{'='*70}")
-        print(f"Training with predictor: {predictor_type.upper()}")
+        if mode == "validation" or mode == "train":
+            print(f"Training with predictor: {predictor_type.upper()}")
+        else:
+            print(f"Testing with predictor: {predictor_type.upper()}")
         print(f"{'='*70}")
 
         try:

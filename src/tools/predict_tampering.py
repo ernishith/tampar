@@ -354,7 +354,7 @@ def main(argv=None):
     # Combine all results
     if len(all_results) > 0:
         df_combined = pd.concat(all_results, ignore_index=True)
-        df_combined = df_combined[~df_combined["feature_importance", "scores"]]
+        df_combined = df_combined.drop(columns=["feature_importance", "scores"])
         df_combined.to_csv(args.output, index=False)
         print(f"\n{'='*70}")
         print(f"Results saved to: {args.output}")

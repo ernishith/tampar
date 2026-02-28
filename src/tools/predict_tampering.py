@@ -145,7 +145,7 @@ def train_predictor(
                     **val_metrics_summary,
                 }
                 # Only add feature importance for tree-based models
-                """if hasattr(models[0], "feature_importances_"):
+                if hasattr(models[0], "feature_importances_"):
                     result_dict["feature_importance"] = {
                         name: value
                         for name, value in zip(
@@ -156,7 +156,7 @@ def train_predictor(
                     }
                 else:
                     result_dict["feature_importance"] = "N/A (ensemble model)"
-                results_performance.append(result_dict)"""
+                results_performance.append(result_dict)
             else:
                 # Use train/test split
                 predictor.test_split_size = test_split
@@ -175,7 +175,7 @@ def train_predictor(
                     **train_metrics,
                 }
                 # Only add feature importance for tree-based models
-                """if hasattr(model, "feature_importances_"):
+                if hasattr(model, "feature_importances_"):
                     result_dict["feature_importance"] = {
                         name: value
                         for name, value in zip(
@@ -186,7 +186,7 @@ def train_predictor(
                     }
                 else:
                     result_dict["feature_importance"] = "N/A (ensemble model)"
-                results_performance.append(result_dict)"""
+                results_performance.append(result_dict)
         else:  # mode == "test"
             predictor.test_split_size = 0
             model = load(
@@ -203,7 +203,7 @@ def train_predictor(
                 **test_metrics,
             }
             # Only add feature importance for tree-based models
-            """if hasattr(model, "feature_importances_"):
+            if hasattr(model, "feature_importances_"):
                 result_dict["feature_importance"] = {
                     name: value
                     for name, value in zip(
@@ -214,7 +214,7 @@ def train_predictor(
                 }
             else:
                 result_dict["feature_importance"] = "N/A (ensemble model)"
-            results_performance.append(result_dict)"""
+            results_performance.append(result_dict)
 
     df_results_ = pd.DataFrame(results_performance)
     return df_results_
@@ -354,6 +354,7 @@ def main(argv=None):
     # Combine all results
     if len(all_results) > 0:
         df_combined = pd.concat(all_results, ignore_index=True)
+        df_combined = df_combined[~df_combined["feature_importance", "scores"]]
         df_combined.to_csv(args.output, index=False)
         print(f"\n{'='*70}")
         print(f"Results saved to: {args.output}")

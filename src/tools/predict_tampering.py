@@ -337,7 +337,7 @@ def main(argv=None):
                 df_final,
                 validate=validate,
                 gt_keypoints=gt_keypoints,
-                predictor_type=predictor,
+                predictor_type=predictor_type,
                 mode=mode,
                 balance_dataset=balance_dataset,
             )

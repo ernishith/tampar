@@ -29,9 +29,7 @@ def load_results(path: Path, balance_dataset: bool = False) -> pd.DataFrame:
         # Check if 'view' column contains 'base' (case-insensitive)
         df = df[~df["view"].str.contains("base", case=False, na=False)]
         after_count = len(df)
-        print(
-            f"Excluded base folder: {before_count - after_count} rows removed ({before_count} -> {after_count})"
-        )
+        # print(f"Excluded base folder: {before_count - after_count} rows removed ({before_count} -> {after_count})")
 
     df["id"] = (
         df["view"]
@@ -120,7 +118,7 @@ def train_predictor(
         predictor = TamperingClassificator(predictor_type)
         X_train = data_train[scores].to_numpy().astype(float)
         y_train = data_train["tampered"].to_numpy().astype(int)
-        if balance_dataset and mode != "train":
+        if balance_dataset and mode == "train":
             smote = SMOTE(random_state=42)
             X_train, y_train = smote.fit_resample(X_train, y_train)
         ids_train = data_train["id"].to_numpy()
@@ -339,7 +337,7 @@ def main(argv=None):
                 df_final,
                 validate=validate,
                 gt_keypoints=gt_keypoints,
-                predictor_type=predictor,
+                predictor_type=predictor_type,
                 mode=mode,
                 balance_dataset=balance_dataset,
             )

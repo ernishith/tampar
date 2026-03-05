@@ -361,10 +361,10 @@ def main():
 
     if not adversarial_dir.exists():
         print(f"Error: Adversarial directory not found: {adversarial_dir}")
-        print(f"Looking for folders matching pattern: {args.background}_adv_*")
+        print(f"Looking for folders matching pattern: {args.background}_adv*")
         # Try to find any matching folder
         parent_dir = Path(args.adversarial_dir)
-        matching_dirs = list(parent_dir.glob(f"{args.background}_adv_"))
+        matching_dirs = list(parent_dir.glob(f"{args.background}_adv*"))
         if matching_dirs:
             print(f"Found these directories: {[d.name for d in matching_dirs]}")
             adversarial_dir = matching_dirs[0]

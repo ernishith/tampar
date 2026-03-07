@@ -61,7 +61,7 @@ def parse_args():
         help="Path to model weights",
     )
     parser.add_argument(
-        "--gt-only",
+        "--gt_only",
         action="store_true",
         help="Only generate GT UV maps (skip predictions)",
     )
@@ -224,7 +224,10 @@ if __name__ == "__main__":
     # 2. GROUND TRUTH UV MAPS
     print("\nGenerating GT UV Maps...")
     coco_merged = merge_coco_annotations(coco_annotations)
-    # gt_infos = create_gt_uvmaps(coco_merged, image_root, uvmaps_dir, groundtruth=True)
+    if args.gt_only:
+        gt_infos = create_gt_uvmaps(
+            coco_merged, image_root, uvmaps_dir, groundtruth=True
+        )
 
     # 3. PREDICTION UV MAPS
     if not args.gt_only:
@@ -250,7 +253,8 @@ if __name__ == "__main__":
 
     # Summary
     print(f"\nCOMPLETE!")
-    # print(f"GT side surfaces: {len(gt_infos)}")
+    if args.gt_only:
+        print(f"GT side surfaces: {len(gt_infos)}")
     print(f"GT files: {len(list(image_root.rglob('*_uvmap_gt.png')))}")
     if not args.gt_only:
         print(f"PRED files: {len(list(image_root.rglob('*_uvmap_pred.png')))}")
